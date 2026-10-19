@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Blitz 桌宠</title>
+<meta name="description" content="一只住在 macOS 桌面上的排线手绘 Blitzcrank：按 ⌥Q 出钩，抓回屏幕上任意一句话，用 Claude Code 结合上下文讲给你听。" />
+<link rel="icon" href="assets/claw-shut.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Caveat:wght@600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #f6f3ec;
+    --paper-2: #ece6d8;
+    --blue: #2b39a6;
+    --ink: #1d2a66;
+    --red: #c4432b;
+    --muted: #5b6390;
+    --line: rgba(43, 57, 166, .22);
+    --serif: "Noto Serif SC", "Songti SC", "STSong", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --hand: "Caveat", "Chalkboard SE", "Marker Felt", cursive;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 16px/1.75 var(--sans); -webkit-font-smoothing: antialiased;
+    background-image: radial-gradient(rgba(43,57,166,.07) 1px, transparent 1.2px);
+    background-size: 22px 22px;
+  }
+  a { color: var(--blue); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 88px 0; }
+  h1, h2, h3 { font-family: var(--serif); color: var(--ink); margin: 0; letter-spacing: .01em; }
+  h2 { font-size: clamp(28px, 4vw, 40px); line-height: 1.25; }
+  .eyebrow { font: 600 22px/1 var(--hand); color: var(--red); margin-bottom: 10px; display: block; }
+  .lead { color: var(--muted); font-size: 17px; max-width: 640px; margin: 14px 0 0; }
+  kbd {
+    font: 600 .88em var(--mono); color: var(--ink); background: #fff;
+    border: 1.5px solid var(--blue); border-bottom-width: 3px; border-radius: 6px; padding: 0 .4em;
+  }
+  code { font: .9em var(--mono); background: rgba(43,57,166,.08); padding: .1em .35em; border-radius: 4px; }
+
+  /* red hatching, as when he aims at a sentence */
+  .hatch {
+    background: repeating-linear-gradient(-55deg, rgba(196,67,43,.30) 0 1.6px, transparent 1.6px 6px);
+    box-shadow: inset 0 -2.6px 0 var(--red);
+    padding: 0 .1em;
+  }
+
+  /* nav */
+  nav { position: sticky; top: 0; z-index: 10; background: rgba(246,243,236,.88); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; gap: 24px; height: 58px; }
+  .brand { display: flex; align-items: center; gap: 8px; font: 900 18px var(--serif); text-decoration: none; color: var(--ink); }
+  .brand img { width: 30px; height: 30px; }
+  nav .links { display: flex; gap: 20px; margin-left: auto; font-size: 15px; }
+  nav .links a { text-decoration: none; color: var(--muted); }
+  nav .links a:hover { color: var(--red); }
+
+  /* hero */
+  .hero { padding: 64px 0 40px; }
+  .hero-grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: 40px; align-items: center; }
+  .hero h1 { font-size: clamp(34px, 5.2vw, 56px); line-height: 1.15; font-weight: 900; }
+  .hero h1 em { font-style: normal; color: var(--red); }
+  .hero .lead { font-size: 18px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 999px;
+    text-decoration: none; font-weight: 600; border: 2px solid var(--blue); color: var(--blue); background: #fff;
+  }
+  .btn.primary { background: var(--blue); color: #fff; }
+  .btn:hover { transform: translateY(-1px); }
+  .meta { margin-top: 18px; font-size: 14px; color: var(--muted); }
+  .stage { position: relative; aspect-ratio: 1 / 1; max-width: 420px; justify-self: center; width: 100%; }
+  .stage .pet { position: absolute; left: 0; bottom: 0; width: 66%; animation: bob 2.6s ease-in-out infinite; }
+  .stage .claw { position: absolute; right: 0; top: 34%; width: 24%; transform: rotate(-18deg); animation: bite 2.6s ease-in-out infinite; }
+  .stage .chain { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .stage .chain path { fill: none; stroke: var(--blue); stroke-width: 2.6; stroke-dasharray: 2 9; stroke-linecap: round; animation: march 1.2s linear infinite; }
+  .bubble {
+    position: absolute; left: 4%; top: -4%; width: 78%; background: #fff; border: 2px solid var(--blue);
+    border-radius: 22px; padding: 12px 14px; font-size: 13.5px; line-height: 1.6; box-shadow: 4px 5px 0 rgba(43,57,166,.15);
+    transform: rotate(1.5deg);
+  }
+  .bubble b { color: var(--red); }
+  @keyframes bob { 50% { transform: translateY(-6px); } }
+  @keyframes bite { 50% { transform: rotate(-12deg) translate(-4px, 4px); } }
+  @keyframes march { to { stroke-dashoffset: -22; } }
+
+  /* video slots */
+  .clip { margin: 0; }
+  .frame {
+    position: relative; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden;
+    background: var(--paper-2); border: 2px solid var(--blue); box-shadow: 6px 7px 0 rgba(43,57,166,.14);
+  }
+  .frame video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; background: #000; }
+  .frame.has-video video { display: block; }
+  .frame.has-video .ph { display: none; }
+  .ph {
+    position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 22px 26px;
+    background: repeating-linear-gradient(-55deg, rgba(196,67,43,.10) 0 1.4px, transparent 1.4px 9px);
+  }
+  .ph .tag { font: 600 20px/1 var(--hand); color: var(--red); }
+  .ph .what { font-weight: 600; color: var(--ink); }
+  .ph .file { font: 13px var(--mono); color: var(--muted); }
+  .clip figcaption { margin-top: 12px; font-size: 15px; color: var(--muted); }
+  .clip figcaption b { color: var(--ink); }
+  .hero-video { margin-top: 56px; }
+  .hero-video .frame { aspect-ratio: 16 / 9; }
+
+  /* steps */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 40px; counter-reset: s; }
+  .step { background: #fff; border: 1.5px solid var(--line); border-radius: 16px; padding: 22px; position: relative; }
+  .step::before { counter-increment: s; content: counter(s); font: 600 40px/1 var(--hand); color: var(--red); display: block; margin-bottom: 6px; }
+  .step h3 { font-size: 20px; margin-bottom: 6px; }
+  .step p { margin: 0; color: var(--muted); font-size: 15px; }
+
+  /* feature grid */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 40px; }
+  .card { background: #fff; border: 1.5px solid var(--line); border-radius: 16px; padding: 22px; }
+  .card h3 { font-size: 18px; margin-bottom: 6px; }
+  .card p { margin: 0; font-size: 15px; color: var(--muted); }
+  .card .ic { font: 600 26px/1 var(--hand); color: var(--red); margin-bottom: 8px; display: block; }
+
+  /* split rows */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; margin-top: 48px; }
+  .split.flip > :first-child { order: 2; }
+  .split h3 { font-size: 24px; margin-bottom: 10px; }
+  .split p { color: var(--muted); margin: 0 0 12px; }
+  ul.pen { list-style: none; padding: 0; margin: 12px 0 0; }
+  ul.pen li { padding-left: 22px; position: relative; margin: 6px 0; }
+  ul.pen li::before { content: ""; position: absolute; left: 2px; top: .75em; width: 10px; height: 2.4px; background: var(--red); border-radius: 2px; transform: rotate(-12deg); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chips span { background: #fff; border: 1.5px solid var(--line); border-radius: 999px; padding: 3px 12px; font-size: 14px; }
+
+  /* tiers */
+  .tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 36px; border: 2px solid var(--blue); border-radius: 16px; overflow: hidden; background: #fff; }
+  .tier { padding: 22px; border-right: 1.5px dashed var(--line); }
+  .tier:last-child { border-right: 0; }
+  .tier .t { font: 600 34px/1 var(--hand); color: var(--red); }
+  .tier h3 { font-size: 18px; margin: 6px 0; }
+  .tier p { margin: 0; font-size: 14.5px; color: var(--muted); }
+
+  /* tables */
+  table { width: 100%; border-collapse: collapse; font-size: 15px; background: #fff; border-radius: 14px; overflow: hidden; border: 1.5px solid var(--line); }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--serif); color: var(--ink); background: rgba(43,57,166,.05); }
+  tr:last-child td { border-bottom: 0; }
+  .table-wrap { overflow-x: auto; margin-top: 28px; }
+
+  /* install */
+  .install { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 36px; }
+  pre {
+    margin: 0; background: var(--ink); color: #e9ecff; padding: 18px 20px; border-radius: 14px;
+    font: 14px/1.8 var(--mono); overflow-x: auto;
+  }
+  pre .c { color: #8f9bd6; }
+
+  /* recording checklist (shown only while clips are missing) */
+  .todo { border: 2px dashed var(--red); border-radius: 18px; padding: 28px; background: rgba(255,255,255,.7); }
+  .todo h2 { font-size: 26px; }
+  .todo .lead { font-size: 15px; }
+  .todo td:first-child { font: 13px var(--mono); white-space: nowrap; color: var(--red); }
+  .todo td:nth-child(n+3), .todo th:nth-child(n+3) { white-space: nowrap; }
+  .todo .tips { margin-top: 20px; font-size: 15px; color: var(--muted); }
+  .done-badge { display: none; }
+
+  footer { border-top: 1px solid var(--line); padding: 36px 0 56px; color: var(--muted); font-size: 13.5px; }
+  footer .wrap { display: flex; gap: 24px; align-items: flex-start; }
+  footer img { width: 48px; opacity: .8; }
+
+  @media (max-width: 860px) {
+    section { padding: 64px 0; }
+    .wrap { padding: 0 16px; }
+    nav .links { display: none; }
+    .hero-grid, .split, .install { grid-template-columns: 1fr; gap: 28px; }
+    .split.flip > :first-child { order: 0; }
+    .steps, .grid, .tiers { grid-template-columns: 1fr; }
+    .tier { border-right: 0; border-bottom: 1.5px dashed var(--line); }
+    .tier:last-child { border-bottom: 0; }
+    .stage { max-width: 320px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="assets/claw-shut.svg" alt="" />Blitz 桌宠</a>
+    <div class="links">
+      <a href="#how">怎么用</a>
+      <a href="#features">功能</a>
+      <a href="#pet">桌宠</a>
+      <a href="#game">小游戏</a>
+      <a href="#install">安装</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow">a desk pet that reads for you</span>
+        <h1>看不懂的那句话，<br /><em>一钩</em>拉回来讲给你听</h1>
+        <p class="lead">一只住在 macOS 桌面上的排线手绘 Blitzcrank。按 <kbd>⌥Q</kbd> 指向屏幕上<span class="hatch">任意一句话</span>，他出钩把这句抓回来，用你本机的 Claude Code 结合上下文，在头顶的思考气泡里用中文解释。</p>
+        <div class="cta">
+          <a class="btn primary" href="#install">免费安装</a>
+          <a class="btn" href="#demos">看演示</a>
+        </div>
+        <p class="meta">macOS 13+ · Apple Silicon · 需要已登录的 Claude Code · 免费、非商业</p>
+      </div>
+      <div class="stage" aria-hidden="true">
+        <svg class="chain" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M46 66 Q 66 50 82 46" /></svg>
+        <img class="pet" src="assets/pet-body.svg" alt="" />
+        <img class="claw" src="assets/claw-open.svg" alt="" />
+        <div class="bubble"><b>“过早优化是万恶之源”</b>：作者在这里引用 Knuth，是想劝读者先把功能写对，再去测哪里真的慢。</div>
+      </div>
+    </div>
+
+    <figure class="clip hero-video">
+      <div class="frame" data-clip="00-hero">
+        <video muted loop playsinline preload="metadata" poster="">
+          <source src="media/00-hero.mp4" type="video/mp4" />
+          <source src="media/00-hero.mov" type="video/quicktime" />
+        </video>
+        <div class="ph">
+          <span class="tag">录屏位 · 主演示</span>
+          <span class="what">⌥Q 瞄准网页里一句英文 → 短按出钩 → 气泡里中文解释逐字出现</span>
+          <span class="file">media/00-hero.mp4 · 15–25 秒 · 16:9</span>
+        </div>
+      </div>
+    </figure>
+  </div>
+</header>
+
+<section id="how">
+  <div class="wrap">
+    <span class="eyebrow">three moves</span>
+    <h2>瞄准，出钩，听他说</h2>
+    <p class="lead">不用先选中，不用复制，不用切去聊天窗口。鼠标指到哪，他就抓哪。</p>
+    <div class="steps">
+      <div class="step">
+        <h3>瞄准</h3>
+        <p>按 <kbd>⌥Q</kbd> 或点一下 Blitz。射道从他的手臂指向鼠标，指到的句子盖上红色排线。</p>
+      </div>
+      <div class="step">
+        <h3>出钩</h3>
+        <p><b>短按</b>抓这一句；<b>按住约半秒</b>蓄力，进度圈转满就抓整段。按 <kbd>Esc</kbd> 或右键收钩。</p>
+      </div>
+      <div class="step">
+        <h3>解释</h3>
+        <p>钩子咬住句子拖回来，解释流进头顶的手绘思考气泡。可以一键复制，也可以随手关掉。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features" style="padding-top:0">
+  <div class="wrap">
+    <span class="eyebrow">why it feels different</span>
+    <h2>指哪抓哪，而且懂上下文</h2>
+    <div class="grid">
+      <div class="card"><span class="ic">anywhere</span><h3>哪里的字都能抓</h3><p>网页、PDF、编辑器、终端、聊天窗口，连视频画面和图片里的字都行。</p></div>
+      <div class="card"><span class="ic">context</span><h3>带着上下文解释</h3><p>一并参考所在 App、窗口标题和前后文（网页取整页正文），讲的是“这句话在这里是什么意思”。</p></div>
+      <div class="card"><span class="ic">one / all</span><h3>短按一句，长按一段</h3><p>句子按语言规则切分，中英混排也能准确停在句号上。想看整段，按住就行。</p></div>
+      <div class="card"><span class="ic">your claude</span><h3>用你自己的 Claude Code</h3><p>调用本机的 <code>claude -p</code>，不用另填 API key。可在 <code>config.json</code> 里换模型和思考力度，保存即生效。</p></div>
+      <div class="card"><span class="ic">private</span><h3>截屏不留底</h3><p>只在瞄准时拍一张，识字后立即删除。调用时不加载你的 hooks、插件、MCP 和 CLAUDE.md，只发提示词。</p></div>
+      <div class="card"><span class="ic">sound</span><h3>有手感</h3><p>瞄准落到句子上“嗒”一声，出钩呼地一下，咬住时“铛”。钩子带链条、有往返，抓空了也会弹回来。</p></div>
+    </div>
+
+    <div class="split">
+      <figure class="clip">
+        <div class="frame" data-clip="01-sentence">
+          <video muted loop playsinline preload="metadata"><source src="media/01-sentence.mp4" type="video/mp4" /><source src="media/01-sentence.mov" type="video/quicktime" /></video>
+          <div class="ph"><span class="tag">录屏位</span><span class="what">在网页文章里移动鼠标，红色排线跟着跳句；短按抓一句</span><span class="file">media/01-sentence.mp4 · 10–15 秒</span></div>
+        </div>
+        <figcaption><b>抓一句。</b>排线跟着鼠标从一句跳到下一句。</figcaption>
+      </figure>
+      <figure class="clip">
+        <div class="frame" data-clip="02-paragraph">
+          <video muted loop playsinline preload="metadata"><source src="media/02-paragraph.mp4" type="video/mp4" /><source src="media/02-paragraph.mov" type="video/quicktime" /></video>
+          <div class="ph"><span class="tag">录屏位</span><span class="what">在 PDF（预览）里按住蓄力，进度圈转满，抓回整段</span><span class="file">media/02-paragraph.mp4 · 10–15 秒</span></div>
+        </div>
+        <figcaption><b>抓一段。</b>按住蓄力，进度圈转满整段收回。</figcaption>
+      </figure>
+    </div>
+
+    <div class="tiers">
+      <div class="tier"><span class="t">0.1 s</span><h3>辅助功能取原文</h3><p>直接读 App 里的原文和每个字的位置，逐字准确。原生文本、Safari、Chrome、VS Code、Cursor、Obsidian 都行。</p></div>
+      <div class="tier"><span class="t">0.8 s</span><h3>Vision 截屏识字</h3><p>读不到原文时自动改用 Apple Vision：视频里的字、图片、跨行的 PDF 段落。</p></div>
+      <div class="tier"><span class="t">兜底</span><h3>剪贴板</h3><p>两项权限都没开时，抓剪贴板里的文字，挂在钩尖上像一张小纸条。</p></div>
+    </div>
+
+    <div class="split flip">
+      <div>
+        <h3>视频、终端、图片里的字也能抓</h3>
+        <p>App 不开放文字时，他会截一张屏，用 Apple Vision 识别，再把同一窗口里的其他文字当作上下文一起交给模型。</p>
+        <div class="chips"><span>Safari / Chrome</span><span>预览 PDF</span><span>VS Code / Cursor</span><span>终端</span><span>微信</span><span>视频画面</span></div>
+      </div>
+      <figure class="clip">
+        <div class="frame" data-clip="03-anywhere">
+          <video muted loop playsinline preload="metadata"><source src="media/03-anywhere.mp4" type="video/mp4" /><source src="media/03-anywhere.mov" type="video/quicktime" /></video>
+          <div class="ph"><span class="tag">录屏位</span><span class="what">依次抓：暂停的视频字幕、终端报错、编辑器里一行代码注释</span><span class="file">media/03-anywhere.mp4 · 15–20 秒</span></div>
+        </div>
+        <figcaption><b>到处都能抓。</b>视频字幕、终端报错、代码注释。</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="pet" style="background:rgba(255,255,255,.55);border-block:1px solid var(--line)">
+  <div class="wrap">
+    <span class="eyebrow">still a desk pet</span>
+    <h2>不抓字的时候，他也闲不住</h2>
+    <p class="lead">他站在屏幕底边，眼睛跟着你的鼠标转。整只用排线笔触画成，动起来像纸上的速写活了过来。</p>
+
+    <div class="split">
+      <figure class="clip">
+        <div class="frame" data-clip="04-pet">
+          <video muted loop playsinline preload="metadata"><source src="media/04-pet.mp4" type="video/mp4" /><source src="media/04-pet.mov" type="video/quicktime" /></video>
+          <div class="ph"><span class="tag">录屏位</span><span class="what">鼠标停在他身上：看你、挥手、冒蒸汽；再拎起来乱晃，甩出去撞墙反弹落地</span><span class="file">media/04-pet.mp4 · 10–15 秒</span></div>
+        </div>
+        <figcaption><b>拎起来，甩出去。</b>他会慌，会撞墙，会落地压扁再弹起。</figcaption>
+      </figure>
+      <div>
+        <h3>摸摸他，拎起他</h3>
+        <ul class="pen">
+          <li>鼠标停在他身上：看着你、挥手，久一点会转天线冒蒸汽</li>
+          <li>按住拖动：拎着脑袋乱晃，推进器火苗乱窜</li>
+          <li>松手：甩出去，撞墙反弹，落地压扁冒一团烟</li>
+          <li>45 秒没人理：起飞，像老式 DVD 屏保一样满屏飘，撞到角落会庆祝</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="split flip">
+      <div>
+        <h3>九段待机小动画</h3>
+        <p>站着发呆时，他会自己找点事做。也可以从菜单栏 › 待机动画 里点名让他演。</p>
+        <div class="chips">
+          <span>打嗝冒烟圈</span><span>火苗打喷嚏</span><span>试一拳</span><span>打盹</span><span>超速冲刺</span><span>整点报时</span><span>抓鼠标</span><span>画一幅小画</span><span>造云打雷</span>
+        </div>
+        <p style="margin-top:16px">晚上 23 点到早上 6 点，他会戴上睡帽，打盹也更勤。</p>
+      </div>
+      <figure class="clip">
+        <div class="frame" data-clip="05-idle">
+          <video muted loop playsinline preload="metadata"><source src="media/05-idle.mp4" type="video/mp4" /><source src="media/05-idle.mov" type="video/quicktime" /></video>
+          <div class="ph"><span class="tag">录屏位</span><span class="what">待机动画集锦：冒烟圈、打喷嚏、抓鼠标、造云打雷、睡帽打盹，各 3–4 秒</span><span class="file">media/05-idle.mp4 · 20–30 秒</span></div>
+        </div>
+        <figcaption><b>他自己的小日子。</b>冒烟圈、抓鼠标、造云打雷。</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="game">
+  <div class="wrap">
+    <span class="eyebrow">pocket arcade</span>
+    <h2>桌面上开一台手绘掌机</h2>
+    <div class="split">
+      <div>
+        <p>菜单栏选“玩 Doodle Jump”，一台排线画的掌机在右下角打开，他缩小钻进屏幕里，靠推进器往上跳。鼠标左右控制方向，掉下去就结束，<kbd>Esc</kbd> 随时退出。</p>
+        <ul class="pen">
+          <li>普通台阶、会滑的台阶、一踩就裂的台阶</li>
+          <li>弹簧把他弹得更高，齿轮可以收集</li>
+          <li>涂鸦小怪：踩上去压扁，撞上就输</li>
+          <li>超载闪电：点燃推进器，直冲一段</li>
+        </ul>
+        <p style="margin-top:12px">不想自己玩？选“看他自己跳”，或者放着不管，他闲久了也会自己开一局。</p>
+      </div>
+      <figure class="clip">
+        <div class="frame" data-clip="06-game" style="aspect-ratio: 4 / 5">
+          <video muted loop playsinline preload="metadata"><source src="media/06-game.mp4" type="video/mp4" /><source src="media/06-game.mov" type="video/quicktime" /></video>
+          <div class="ph"><span class="tag">录屏位 · 竖版</span><span class="what">掌机打开、他缩进屏幕；踩弹簧、吃闪电冲刺、压扁一只小怪，最后掉下去结束</span><span class="file">media/06-game.mp4 · 15–25 秒 · 裁成竖版 4:5</span></div>
+        </div>
+        <figcaption><b>Doodle Jump。</b>越往上越难，小怪越多。</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="demos" style="padding-top:0">
+  <div class="wrap">
+    <span class="eyebrow">for creators</span>
+    <h2>自带录屏模式</h2>
+    <div class="split flip">
+      <div>
+        <p>菜单栏点“开始录制”，Blitz 用 macOS 自带的 screencapture 录下主屏，同时把他做的每件事（瞄准、出钩、咬住、气泡、小游戏得分、音效）按毫秒写进旁边的事件日志。</p>
+        <p>剪视频时可以照着日志自动对齐、放大、配音效。录好的 <code>.mov</code> 和 <code>.jsonl</code> 都在 <code>recordings/</code> 里，菜单栏一键打开。</p>
+      </div>
+      <figure class="clip">
+        <div class="frame" data-clip="07-drift">
+          <video muted loop playsinline preload="metadata"><source src="media/07-drift.mp4" type="video/mp4" /><source src="media/07-drift.mov" type="video/quicktime" /></video>
+          <div class="ph"><span class="tag">录屏位</span><span class="what">菜单栏 › 现在就飘：满屏飘、撞角落庆祝，鼠标碰到他落回地面</span><span class="file">media/07-drift.mp4 · 10–20 秒</span></div>
+        </div>
+        <figcaption><b>DVD 屏保模式。</b>等他撞中角落的那一下。</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="keys" style="padding-top:0">
+  <div class="wrap">
+    <span class="eyebrow">cheat sheet</span>
+    <h2>操作一览</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>操作</th><th>效果</th></tr>
+        <tr><td>点一下 Blitz，或按 <kbd>⌥Q</kbd></td><td>进入瞄准，指到的句子盖上红色排线</td></tr>
+        <tr><td>瞄准时短按</td><td>出钩，抓这一句</td></tr>
+        <tr><td>瞄准时按住约半秒</td><td>蓄力，进度圈转满后抓整段</td></tr>
+        <tr><td><kbd>Esc</kbd> 或右键</td><td>收起钩子 / 结束小游戏</td></tr>
+        <tr><td>气泡里的 复制 / ✕</td><td>复制解释 / 关闭气泡</td></tr>
+        <tr><td>按住 Blitz 拖动</td><td>拎起来；松手甩出去</td></tr>
+        <tr><td>菜单栏图标</td><td>回到右下角、满屏飘、玩 Doodle Jump、待机动画、睡帽、录屏</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="install" style="background:rgba(255,255,255,.55);border-block:1px solid var(--line)">
+  <div class="wrap">
+    <span class="eyebrow">get blitz</span>
+    <h2>三分钟装好</h2>
+    <p class="lead">需要 macOS 13 Ventura 及以上、Apple Silicon、Node.js 18+、Xcode Command Line Tools，以及已安装并登录的 Claude Code。</p>
+    <div class="install">
+      <pre><span class="c"># 下载并安装依赖</span>
+git clone https://github.com/Aeriths1/blitz-pet.git blitz-pet
+cd blitz-pet &amp;&amp; npm install
+
+<span class="c"># 编译取词和识字的两个小程序</span>
+npm run build:native
+
+<span class="c"># 启动，他出现在屏幕右下角</span>
+npm start</pre>
+      <div>
+        <h3 style="font-size:20px;margin-bottom:8px">开两项权限</h3>
+        <p style="color:var(--muted);margin:0 0 12px">系统设置 › 隐私与安全性，给 <b>Electron</b> 打开，然后重启 Blitz。</p>
+        <ul class="pen">
+          <li><b>辅助功能</b>：读指针下文字的原文、位置和前后文</li>
+          <li><b>屏幕与系统录音</b>：截屏识字（视频、图片、不开放文字的 App）</li>
+        </ul>
+        <p style="color:var(--muted);margin:16px 0 0;font-size:15px">想换更快的模型？在 <code>config.json</code> 里把 <code>model</code> 改成 <code>claude-sonnet-5-5</code> 或 <code>claude-haiku-5-5</code>，保存后下一次出钩就生效。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 录屏清单：所有录屏位都有视频后自动隐藏。正式发布前也可以直接删掉这一节。 -->
+<section id="todo">
+  <div class="wrap">
+    <div class="todo">
+      <span class="eyebrow">before launch</span>
+      <h2>待录制清单 <span id="todo-count" style="color:var(--red)"></span></h2>
+      <p class="lead">把录好的视频按下表文件名放进 <code>site/media/</code>，刷新页面就会自动替换占位框；全部到齐后这一节自动隐藏。</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>文件名</th><th>录什么</th><th>时长</th><th>状态</th></tr>
+          <tr data-row="00-hero"><td>00-hero.mp4</td><td>主演示。Safari 打开一篇英文技术文章，⌥Q 瞄准一句（如引用 Knuth 那句），短按出钩，钩子咬住拖回，气泡里中文解释逐字出现，最后点“复制”。</td><td>15–25 秒</td><td class="st">待录</td></tr>
+          <tr data-row="01-sentence"><td>01-sentence.mp4</td><td>瞄准状态下慢慢移动鼠标，红色排线一句一句跳，停在中英混排的句子上短按抓取。</td><td>10–15 秒</td><td class="st">待录</td></tr>
+          <tr data-row="02-paragraph"><td>02-paragraph.mp4</td><td>在“预览”打开一页论文 PDF，按住蓄力，进度圈转满，抓回整段并解释。</td><td>10–15 秒</td><td class="st">待录</td></tr>
+          <tr data-row="03-anywhere"><td>03-anywhere.mp4</td><td>连抓三处：暂停的视频字幕、终端里一条报错、编辑器里一行代码注释。每处只留“咬住 + 气泡出现”的瞬间。</td><td>15–20 秒</td><td class="st">待录</td></tr>
+          <tr data-row="04-pet"><td>04-pet.mp4</td><td>鼠标停在他身上（看你、挥手、冒蒸汽），然后拎起来乱晃，用力甩向屏幕一侧，撞墙反弹落地。</td><td>10–15 秒</td><td class="st">待录</td></tr>
+          <tr data-row="05-idle"><td>05-idle.mp4</td><td>菜单栏 › 待机动画，依次点：打嗝冒烟圈、火苗打喷嚏、抓鼠标、造云打雷；睡帽选“一直戴”再点打盹。剪成每段 3–4 秒的集锦。</td><td>20–30 秒</td><td class="st">待录</td></tr>
+          <tr data-row="06-game"><td>06-game.mp4</td><td>菜单栏 › 玩 Doodle Jump。录到踩弹簧、吃闪电冲刺、压扁小怪，最后掉下去结束。裁成竖版只保留掌机。</td><td>15–25 秒</td><td class="st">待录</td></tr>
+          <tr data-row="07-drift"><td>07-drift.mp4</td><td>菜单栏 › 现在就飘，等他撞中屏幕角落庆祝，再用鼠标碰他落回地面。</td><td>10–20 秒</td><td class="st">待录</td></tr>
+        </table>
+      </div>
+      <div class="tips">
+        <b>录制小贴士：</b>用菜单栏的“开始录制”或 <kbd>⌘⇧5</kbd> 都可以；开勿扰模式、隐藏桌面图标、换一张干净的浅色壁纸；把被抓的文字字号调大一点（⌘+），小屏上也看得清；导出 1080p 的 H.264 mp4，每段控制在 10 MB 以内，页面会静音循环播放。<code>.mov</code> 也能直接放，Safari 和 Chrome 都能播。
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <img src="assets/pet-body.svg" alt="" />
+    <div>
+      <p style="margin:0 0 6px"><b style="color:var(--ink)">Blitz 桌宠</b> · 排线画风为本项目原创绘制。</p>
+      <p style="margin:0">Blitzcrank 是 Riot Games《英雄联盟》中的角色。本项目为非官方同人作品，与 Riot Games 无关，未经 Riot Games 认可，免费、非商业。</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Each slot shows its clip once media/<name>.mp4 (or .mov) loads; until then the placeholder stays.
+  const frames = [...document.querySelectorAll(".frame[data-clip]")];
+  const have = new Set();
+  const refresh = () => {
+    const left = frames.length - have.size;
+    const count = document.getElementById("todo-count");
+    if (count) count.textContent = left ? `（还差 ${left} 段）` : "";
+    if (!left) document.getElementById("todo")?.remove();
+  };
+  const io = new IntersectionObserver((es) => {
+    for (const e of es) {
+      const v = e.target.querySelector("video");
+      if (!e.target.classList.contains("has-video")) continue;
+      e.isIntersecting ? v.play().catch(() => {}) : v.pause();
+    }
+  }, { threshold: 0.35 });
+  for (const f of frames) {
+    const v = f.querySelector("video");
+    const name = f.dataset.clip;
+    v.addEventListener("loadedmetadata", () => {
+      f.classList.add("has-video");
+      have.add(name);
+      const st = document.querySelector(`[data-row="${name}"] .st`);
+      if (st) { st.textContent = "已放入"; st.style.color = "#2f7d4a"; }
+      if (name === "00-hero") v.controls = true;
+      refresh();
+      v.play().catch(() => {});
+    }, { once: true });
+    io.observe(f);
+  }
+  refresh();
+</script>
+</body>
+</html>

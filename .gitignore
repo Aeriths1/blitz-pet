@@ -1,0 +1,11 @@
+node_modules/
+recordings/
+_to_delete/
+q-cast-preview.png
+promo/.*.log
+.DS_Store
+*.log
+site/media/
+promo/
+native/ax-at
+native/ocr

@@ -1,0 +1,14 @@
+{
+  "name": "blitz-pet",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A pen-drawn Blitzcrank desk pet for macOS that hooks any sentence on screen and explains it in context",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "build:native": "swiftc -O native/ocr.swift -o native/ocr && swiftc -O native/ax-at.swift -o native/ax-at"
+  },
+  "devDependencies": {
+    "electron": "44.7.0"
+  }
+}

@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
+    <style>
+      :root { --blue: #2b39a6; --red: #c4432b; --paper: #f6f3ec; --ink: #1d2a66; }
+      html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; user-select: none; }
+      #stage { position: fixed; inset: 0; width: 100%; height: 100%; overflow: visible; }
+      .grab { cursor: grab; }
+      .grabbing, .grabbing * { cursor: grabbing !important; }
+
+      .bob { animation: bob 2.6s ease-in-out infinite; }
+      @keyframes bob { 50% { transform: translateY(-4px); } }
+      :is(.pen-b, .pen-r) { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .pen-b { stroke: var(--blue); }
+      .pen-r { stroke: var(--red); }
+      .pen-bf { fill: var(--blue); }
+      .pen-rf { fill: var(--red); }
+      .pen-paper { fill: var(--paper); }
+      .think { fill: var(--red); animation: blink 0.7s ease-in-out infinite; }
+      .static { fill: none; stroke: var(--blue); stroke-width: 2; stroke-dasharray: 3 8; stroke-linecap: round; }
+      @keyframes blink { 50% { opacity: 0.15; } }
+
+      .range { fill: none; stroke: var(--blue); stroke-opacity: .35; stroke-width: 1.6; stroke-dasharray: 3 7; stroke-linecap: round; }
+      .lane { fill: none; stroke: var(--blue); stroke-opacity: .9; stroke-width: 2.6; stroke-linecap: round; }
+      .chev { fill: none; stroke: var(--red); stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; opacity: .9; }
+      .chain ellipse { fill: var(--paper); fill-opacity: .7; stroke: var(--blue); stroke-width: 2.4; }
+      .hl .hatch { fill: none; stroke: var(--red); stroke-width: 1.6; stroke-linecap: round; opacity: .38; }
+      .hl .under { fill: none; stroke: var(--red); stroke-width: 2.6; stroke-linecap: round; opacity: .9; }
+      .scanning { animation: blink 0.7s ease-in-out infinite; }
+      .spark-r { fill: none; stroke: var(--red); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+      .spark-b { fill: none; stroke: var(--blue); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .spark-dot { fill: var(--red); }
+      .world { fill: var(--paper); fill-opacity: .9; }
+      .screen { fill: #ece6d8; }
+      .pressed { fill: var(--red); fill-opacity: .35; }
+      .label { font: italic 700 13px "Chalkboard SE", "Marker Felt", sans-serif; fill: var(--blue); letter-spacing: 2px; }
+      .key { font: 700 11px "Chalkboard SE", "Marker Felt", sans-serif; fill: var(--red); }
+      .rec-ring { fill: none; stroke: var(--red); stroke-width: 3; }
+      .score { font: 700 22px "PingFang SC", sans-serif; fill: var(--red); paint-order: stroke; stroke: var(--paper); stroke-width: 5px; }
+      .charge { fill: none; stroke: var(--red); stroke-width: 3; stroke-linecap: round; }
+      .miss { fill: none; stroke: var(--red); stroke-width: 2.4; stroke-dasharray: 4 5; opacity: .8; }
+      .note .paper { fill: var(--paper); fill-opacity: .96; }
+      .note .hatch { fill: none; stroke: var(--red); stroke-width: 1.6; stroke-linecap: round; opacity: .3; }
+      .note text { font: 600 13px "PingFang SC", "Heiti SC", sans-serif; fill: var(--red); }
+
+      #bubble { position: fixed; left: 0; top: 0; width: 330px; padding: 16px 18px 12px; box-sizing: border-box; background: var(--paper);
+        border-radius: 18px; font: 14px/1.65 "PingFang SC", "Heiti SC", sans-serif; color: var(--ink); opacity: 0; pointer-events: none;
+        transition: opacity .18s ease; user-select: text; }
+      #bubble.open { opacity: 1; pointer-events: auto; }
+      #bubble .ink { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; fill: none; stroke: var(--blue); stroke-linecap: round; stroke-linejoin: round; }
+      #bubble .trail path { fill: var(--paper); }
+      #bubble .quote { font-style: italic; font-size: 13px; line-height: 1.45; color: var(--red); opacity: .85; margin-bottom: 8px; }
+      #bubble .text { max-height: 42vh; overflow-y: auto; }
+      #bubble .foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+      #bubble button { font: 500 12px "PingFang SC", sans-serif; color: var(--blue); background: none; border: 0; cursor: pointer; padding: 2px 4px; border-radius: 6px; }
+      #bubble button:hover { background: rgba(43, 57, 166, .1); }
+      #bubble .copy { text-decoration: underline; text-underline-offset: 3px; }
+      #bubble .source { color: var(--red); opacity: .8; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #bubble .grow { flex: 1; }
+      .dots { display: flex; gap: 7px; padding: 6px 0; }
+      .dots span { width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--blue); animation: dot 1s ease-in-out infinite; }
+      .dots span:nth-child(2) { animation-delay: .15s; }
+      .dots span:nth-child(3) { animation-delay: .3s; }
+      @keyframes dot { 50% { transform: translateY(-5px); background: rgba(43, 57, 166, .3); } }
+
+      #menu { position: fixed; left: 0; top: 0; width: 176px; height: 176px; padding: 12px 14px; box-sizing: border-box; background: var(--paper); border-radius: 14px; opacity: 0; pointer-events: none;
+        transition: opacity .15s ease; font: 700 14px/1.4 "HanziPen SC", "Hannotate SC", "Kaiti SC", "PingFang SC", sans-serif; color: var(--ink); }
+      #menu.open { opacity: 1; pointer-events: auto; }
+      #menu.wide { width: 236px; }
+      #menu .choice { display: flex; align-items: baseline; gap: 2px; padding: 2px 2px 6px; white-space: nowrap; }
+      #menu .choice > span:first-child { margin-right: auto; }
+      #menu .choice .value { color: var(--red); min-width: 64px; text-align: center; }
+      #menu button.arrow { color: var(--red); font-size: 16px; padding: 0 5px 4px; }
+      #menu .ink { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; fill: none; stroke: var(--blue); stroke-linecap: round; stroke-linejoin: round; }
+      #menu .items { height: 100%; display: flex; flex-direction: column; }
+      #menu .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+      #menu h4 { margin: 0; font: italic 700 12px "Chalkboard SE", "HanziPen SC", "Kaiti SC", sans-serif; color: var(--red); letter-spacing: 2px; opacity: .85; }
+      #menu .grid { display: grid; grid-template-columns: 1fr; }
+      #menu .grid.two { grid-template-columns: 1fr 1fr; column-gap: 6px; }
+      #menu .grid.top { flex: 1; align-content: center; gap: 10px; font-size: 17px; }
+      #menu button { position: relative; font: inherit; color: var(--blue); background: none; border: 0; padding: 2px 2px 6px; text-align: left; cursor: pointer; white-space: nowrap; }
+      #menu button.back { font-size: 12px; color: var(--red); padding-bottom: 4px; }
+      #menu button svg { position: absolute; left: 2px; bottom: 0; overflow: visible; pointer-events: none; }
+      #menu button svg path { fill: none; stroke: var(--red); stroke-linecap: round; stroke-dasharray: 1 1; stroke-dashoffset: 1; transition: stroke-dashoffset .22s ease; }
+      #menu button:hover svg path, #menu button.on svg path { stroke-dashoffset: 0; }
+      #menu button.on { color: var(--red); }
+    </style>
+  </head>
+  <body>
+    <svg id="stage"></svg>
+    <div id="bubble" role="dialog">
+      <svg class="ink" width="0" height="0"><g class="trail"></g><g class="frame"></g></svg>
+      <div class="quote"></div>
+      <div class="text"></div>
+      <div class="foot"><button type="button" class="source"></button><span class="grow"></span><button type="button" class="copy">复制</button><button type="button" class="close" aria-label="关闭">✕</button></div>
+    </div>
+    <div id="menu" role="menu"><svg class="ink" width="0" height="0"></svg><div class="items"></div></div>
+    <script type="module" src="src/blitz.mjs"></script>
+  </body>
+</html>

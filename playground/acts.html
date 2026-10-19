@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Blitz 动画试验场</title>
+    <style>
+      :root { --blue: #2b39a6; --red: #c4432b; --paper: #f6f3ec; }
+      html, body { margin: 0; height: 100%; background: #e9e4d8; font: 14px "PingFang SC", sans-serif; color: #1d2a66; overflow: hidden; }
+      #bar { position: fixed; top: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; background: #f6f3ec; border-bottom: 1px solid #d8d2c4; z-index: 2; }
+      #bar button { font: inherit; border: 1.5px solid var(--blue); background: none; color: var(--blue); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+      #bar button.on { background: var(--blue); color: #fff; }
+      #bar .k { color: #8a8576; font-size: 12px; align-self: center; margin-left: 6px; }
+      #stage { position: fixed; inset: 0; width: 100%; height: 100%; }
+      :is(.pen-b, .pen-r) { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .pen-b { stroke: var(--blue); } .pen-r { stroke: var(--red); }
+      .pen-bf { fill: var(--blue); } .pen-rf { fill: var(--red); } .pen-paper { fill: var(--paper); }
+      .static { fill: none; stroke: var(--blue); stroke-width: 2; stroke-dasharray: 3 8; stroke-linecap: round; }
+      .static.big { stroke: var(--red); stroke-width: 3; stroke-dasharray: 6 9; }
+    </style>
+  </head>
+  <body>
+    <div id="bar"></div>
+    <svg id="stage"></svg>
+    <script type="module" src="acts-preview.mjs"></script>
+  </body>
+</html>
