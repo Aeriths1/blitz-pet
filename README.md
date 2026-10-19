@@ -2,6 +2,17 @@
 
 一只住在 macOS 桌面上的排线手绘 Blitzcrank。指向屏幕上任意一句话，他出钩把这句抓回来，结合上下文在头顶的思考气泡里解释它。
 
+<p align="center">
+  <img src="docs/media/grab-sentence.gif" width="49%" alt="短按抓一句">
+  <img src="docs/media/grab-paragraph.gif" width="49%" alt="长按抓一段">
+</p>
+<p align="center">
+  <img src="docs/media/idle-sneeze.gif" width="24%" alt="打喷嚏">
+  <img src="docs/media/idle-snatch.gif" width="24%" alt="抓鼠标">
+  <img src="docs/media/idle-dash.gif" width="24%" alt="冲刺">
+  <img src="docs/media/idle-doodle.gif" width="24%" alt="画画">
+</p>
+
 - **指哪抓哪**：网页、PDF、编辑器、终端、聊天窗口，连视频画面里的字都能抓。
 - **短按一句，长按一段**：按住蓄力，进度圈转满就抓整段。
 - **带上下文**：解释时会一并参考所在 App、窗口标题和前后文。
