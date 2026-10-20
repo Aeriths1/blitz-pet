@@ -192,13 +192,18 @@ function menu() {
           ["chime", "整点报时"],
           ["snatch", "抓鼠标"],
           ["doodle", "画一幅小画"],
+          ["music", "戴耳机听歌"],
+          ["guitar", "弹吉他"],
+          ["dj", "打碟"],
+          ["sing", "唱歌"],
+          ["violin", "拉小提琴"],
         ]
           .map(([name, label]) => ({ label, click: () => send("cmd", `act:${name}`) }))
           .concat([
             { type: "separator" },
-            { label: "睡帽：跟随时间（23 点到 6 点）", type: "radio", checked: prefs.night === null, click: () => ((prefs.night = null), send("cmd", "night-auto")) },
-            { label: "睡帽：一直戴", type: "radio", checked: prefs.night === true, click: () => ((prefs.night = true), send("cmd", "night-on")) },
-            { label: "睡帽：不戴", type: "radio", checked: prefs.night === false, click: () => ((prefs.night = false), send("cmd", "night-off")) },
+            { label: "耳机：跟随时间（23 点到 6 点）", type: "radio", checked: prefs.night === null, click: () => ((prefs.night = null), send("cmd", "night-auto")) },
+            { label: "耳机：一直戴", type: "radio", checked: prefs.night === true, click: () => ((prefs.night = true), send("cmd", "night-on")) },
+            { label: "耳机：不戴", type: "radio", checked: prefs.night === false, click: () => ((prefs.night = false), send("cmd", "night-off")) },
           ]),
       },
       { type: "separator" },

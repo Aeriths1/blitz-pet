@@ -1,6 +1,6 @@
 // The idle acts on a plain stage: Blitz drawn the way blitz.mjs draws him (same art, same geometry),
 // standing on the floor, with a button per act. Nothing here belongs to the desk pet itself.
-import { ACTS, actMs, nightCap } from "../src/acts.mjs";
+import { ACTS, actMs, headset } from "../src/acts.mjs";
 import { arc, ink, Pen, penPaths, ring, rng } from "../src/pen.mjs";
 import { playActSound } from "../src/sound.mjs";
 
@@ -95,7 +95,7 @@ function step(t) {
     } else {
       s.pose = ACTS[s.act.name].pose({
         e, u: e / ms, t, at, f: s.f, P: s.P, ground: GROUND(), W: W(), H: window.innerHeight, pointer: s.pointer ?? { x: s.P.x - 260, y: s.P.y - 60 },
-        data: s.act.data, puff, sound: playActSound, face: (d) => (s.f = d < 0 ? -1 : 1),
+        data: s.act.data, puff, sound: playActSound, worn: s.night, face: (d) => (s.f = d < 0 ? -1 : 1),
       }) ?? {};
       if (s.pose.vx) s.P.x = clamp(s.P.x + s.pose.vx * dt, HALF_W + 20, W() - HALF_W - 20);
       if (s.pose.flameLen !== undefined && t - s.flameAt > 60) (s.flameSeed = seed()), (s.flameAt = t);
@@ -133,7 +133,7 @@ function draw(t) {
   const pupil = pose.pupil ?? 3.4;
   const eyes = EYES.map(([x, y], i) => (pose.lids ? INK.lids[i] : `<circle cx="${x}" cy="${y}" r="7.5" class="pen-paper"/>${INK.eyes[i]}<circle cx="${(x + gaze[0]).toFixed(1)}" cy="${(y + gaze[1]).toFixed(1)}" r="${pupil}" class="pen-bf"/>`)).join("");
   const flame = pose.flameLen !== undefined ? flameInk(s.flameSeed, pose.flameLen, pose.flameSkew ?? 0) : INK.flame;
-  $("dyn").innerHTML = INK.stalk + `<circle cx="120" cy="33" r="5.5" class="pen-rf"/>` + flame + eyes + (s.night ? nightCap(t) : "") + (pose.art ?? "");
+  $("dyn").innerHTML = INK.stalk + `<circle cx="120" cy="33" r="5.5" class="pen-rf"/>` + flame + eyes + (s.night && pose.cap !== false ? headset(t) : "") + (pose.art ?? "");
   $("act").innerHTML = pose.win ?? "";
   $("fx").innerHTML = s.puffs
     .map((p) => {
@@ -152,7 +152,7 @@ for (const [kind, label] of Object.entries(KINDS)) {
   bar.insertAdjacentHTML("beforeend", `<span class="k">${label}</span>`);
   for (const [name, a] of Object.entries(ACTS)) if (a.kind === kind) bar.insertAdjacentHTML("beforeend", `<button data-act="${name}">${a.zh}</button>`);
 }
-bar.insertAdjacentHTML("beforeend", `<span class="k">其他</span><button id="night">深夜睡帽</button><button id="all">连播全部</button>`);
+bar.insertAdjacentHTML("beforeend", `<span class="k">其他</span><button id="night">一直戴耳机</button><button id="all">连播全部</button>`);
 bar.addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;

@@ -45,16 +45,20 @@
       .note .hatch { fill: none; stroke: var(--red); stroke-width: 1.6; stroke-linecap: round; opacity: .3; }
       .note text { font: 600 13px "PingFang SC", "Heiti SC", sans-serif; fill: var(--red); }
 
-      #bubble { position: fixed; left: 0; top: 0; width: 330px; padding: 16px 18px 12px; box-sizing: border-box; background: var(--paper);
-        border-radius: 18px; font: 14px/1.65 "PingFang SC", "Heiti SC", sans-serif; color: var(--ink); opacity: 0; pointer-events: none;
+      #bubble { position: fixed; left: 0; top: 0; width: 290px; padding: 14px 18px 8px; box-sizing: border-box; background: var(--paper);
+        border-radius: 18px; font: 14px/1.6 "PingFang SC", "Heiti SC", sans-serif; color: var(--ink); opacity: 0; pointer-events: none;
         transition: opacity .18s ease; user-select: text; }
       #bubble.open { opacity: 1; pointer-events: auto; }
       #bubble .ink { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; fill: none; stroke: var(--blue); stroke-linecap: round; stroke-linejoin: round; }
       #bubble .trail path { fill: var(--paper); }
-      #bubble .quote { font-style: italic; font-size: 13px; line-height: 1.45; color: var(--red); opacity: .85; margin-bottom: 8px; }
+      #bubble .quote { font-style: italic; font-size: 12px; line-height: 1.45; color: var(--red); opacity: .8; margin-bottom: 8px;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
       #bubble .text { max-height: 42vh; overflow-y: auto; }
-      #bubble .foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-      #bubble button { font: 500 12px "PingFang SC", sans-serif; color: var(--blue); background: none; border: 0; cursor: pointer; padding: 2px 4px; border-radius: 6px; }
+      /* The gist: bigger, in the blue ink. The rest: smaller, quieter. */
+      #bubble .gist { font-size: 16.5px; font-weight: 600; line-height: 1.5; color: var(--blue); }
+      #bubble .more { margin-top: 6px; font-size: 13px; line-height: 1.6; color: var(--ink); opacity: .82; }
+      #bubble .foot { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding-top: 6px; border-top: 1.5px dashed rgba(43, 57, 166, .22); }
+      #bubble button { font: 500 11.5px "PingFang SC", sans-serif; color: var(--blue); background: none; border: 0; cursor: pointer; padding: 2px 4px; border-radius: 6px; }
       #bubble button:hover { background: rgba(43, 57, 166, .1); }
       #bubble .copy { text-decoration: underline; text-underline-offset: 3px; }
       #bubble .source { color: var(--red); opacity: .8; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

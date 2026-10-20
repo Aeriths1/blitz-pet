@@ -23,7 +23,7 @@
 // to face left or right, lifted, swung and squashed; the moving parts are drawn with the pen.
 import { arc, boxPoints, ink, Pen, penPaths, ring, rng } from "./pen.mjs";
 import { onSound, playActSound, playHookSound } from "./sound.mjs";
-import { ACTS, actMs, nightCap } from "./acts.mjs";
+import { ACTS, actMs, headset } from "./acts.mjs";
 import { paragraphAt, readScreen, sentenceAt } from "./text.mjs";
 
 /** An event for the recording log, while recording (points in window px; see recorder.cjs). */
@@ -506,7 +506,18 @@ const bubble = (() => {
 
   const render = () => {
     if (thinking) body.innerHTML = `<div class="dots"><span></span><span></span><span></span></div>`;
-    else body.innerHTML = esc(answer).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
+    else {
+      // The first line is the gist, the rest is a quieter aside. Without a line break, the first sentence is the gist.
+      const a = answer.replace(/\*\*/g, "").trim();
+      let cut = a.indexOf("\n");
+      if (cut < 0) {
+        const m = /[。！？!?]|\.(?=\s)/.exec(a.slice(6));
+        cut = m ? m.index + 7 : -1;
+      }
+      const gist = cut < 0 ? a : a.slice(0, cut).trim();
+      const more = cut < 0 ? "" : a.slice(cut).trim();
+      body.innerHTML = `<div class="gist"><span>${esc(gist)}</span></div>` + (more ? `<div class="more">${esc(more).replace(/\n+/g, "<br>")}</div>` : "");
+    }
     copy.style.display = !thinking && answer && quote.textContent ? "" : "none";
     // Where it came from: a web page (its site) or a document.
     const web = from?.url && /^https?:/.test(from.url) ? from.url : null;
@@ -518,7 +529,7 @@ const bubble = (() => {
   const show = (q) => {
     clearTimeout(timer);
     open = true;
-    quote.textContent = q ? `“${q.length > 120 ? q.slice(0, 118) + "…" : q}”` : "";
+    quote.textContent = q ? `“${q.length > 90 ? q.slice(0, 88) + "…" : q}”` : "";
     quote.style.display = q ? "" : "none";
     box.classList.add("open");
     size = { w: 0, h: 0 };
@@ -635,7 +646,7 @@ const menu = (() => {
     } catch {}
     return /^zh/i.test(navigator.language) ? "zh" : "en";
   })();
-  const ACT_EN = { ring: "Smoke ring", sneeze: "Sneeze", punch: "Punch", nap: "Nap", dash: "Dash", chime: "Chime", snatch: "Snatch", doodle: "Doodle" };
+  const ACT_EN = { ring: "Smoke ring", sneeze: "Sneeze", punch: "Punch", nap: "Nap", dash: "Dash", chime: "Chime", snatch: "Snatch", doodle: "Doodle", music: "Music", guitar: "Guitar", dj: "DJ", sing: "Sing", violin: "Violin" };
   const T = (zh, en) => (lang === "en" ? en : zh);
   const switchLang = () => {
     lang = lang === "en" ? "zh" : "en";
@@ -662,7 +673,7 @@ const menu = (() => {
       items: [
         { label: T("语言", "Language"), choice: T("简体中文", "English"), run: switchLang },
         { label: T("待机时自己玩", "Play when idle"), on: s.drift, run: setting(s.drift ? "drift-off" : "drift-on") },
-        { label: T("睡帽跟随时间", "Nightcap: by clock"), on: s.night === null, run: setting("night-auto") },
+        { label: T("耳机跟随时间", "Headphones: by clock"), on: s.night === null, run: setting("night-auto") },
       ],
     },
   ];
@@ -815,7 +826,7 @@ const command = (c) => {
   else if (c === "drift-off") s.drift = false;
 };
 host.onCommand(command);
-window.blitz = { command, state: s };
+window.blitz = { command, state: s, bubble };
 setInterval(async () => (s.pcIdle = (await host.idle?.()) ?? 0), 5000);
 
 /* ---------- idle life ---------- */
@@ -883,10 +894,11 @@ function idle(t) {
   if (t > s.blinkUntil + 2600 && seeds() < 0.004) s.blinkUntil = t + (seeds() < 0.25 ? 380 : 150);
   if (t > s.nextIdle) {
     s.nextIdle = t + 9000 + seeds() * 12000;
-    // Every third time, something bigger: a nap (likelier late at night) or a sprint.
+    // Every third time, something bigger: a nap (likelier late at night), some music (one of five) or a sprint.
     if (++s.idleN % 3 === 0) {
-      const big = seeds() < (isNight() ? 0.8 : 0.45) ? "nap" : "dash";
-      if (big === "nap" || away) return startAct(big);
+      const r = seeds();
+      const big = r < (isNight() ? 0.8 : 0.3) ? "nap" : r < (isNight() ? 0.9 : 0.65) ? MUSIC[Math.floor(seeds() * MUSIC.length)] : "dash";
+      if (big !== "dash" || away) return startAct(big);
     }
     const r = seeds();
     if (r < 0.22) return away ? stroll(t) : fidget();
@@ -904,6 +916,7 @@ function idle(t) {
 }
 
 /* ---------- idle acts (acts.mjs) ---------- */
+const MUSIC = ["music", "guitar", "dj", "sing", "violin"];
 function isNight() {
   if (s.night !== null) return s.night;
   const h = new Date().getHours();
@@ -947,6 +960,7 @@ function stepAct(t, dt) {
       data: a.data,
       puff,
       sound: playActSound,
+      worn: isNight(),
       face: (dir) => (s.f = dir < 0 ? -1 : 1),
     }) ?? {};
   if (pose.vx) s.P.x = clamp(s.P.x + pose.vx * dt, HALF_W, W() - HALF_W);
@@ -1497,9 +1511,16 @@ function draw(t) {
   // An idle act (acts.mjs) poses him while he stands about.
   const pose = s.mode === "ground" ? s.actPose : null;
   if (pose?.hop) hop += pose.hop;
+  // Charging the hook he trembles, harder as it fills, and jolts as it takes the paragraph.
+  let shake = [0, 0];
+  if (s.mode === "aim" && s.aim?.armed) {
+    const a = s.aim;
+    const amp = a.scope === "paragraph" ? 0.8 + 3.2 * Math.max(0, 1 - (t - a.chargedAt) / 300) : 2.2 * Math.min(1, (t - a.pressAt) / CHARGE_MS);
+    shake = [Math.sin(t / 17) * amp + Math.sin(t / 7) * amp * 0.4, Math.cos(t / 21) * amp * 0.6];
+  }
   const deg = (s.th * 180) / Math.PI;
   const D = DROP * s.k, k = B * s.k;
-  const tf = `translate(${s.P.x.toFixed(1)} ${(s.P.y + hop).toFixed(1)}) rotate(${(deg + (pose?.tilt ?? 0)).toFixed(2)}) translate(0 ${D.toFixed(1)}) scale(${squash.sx.toFixed(3)} ${squash.sy.toFixed(3)}) translate(0 ${(-D).toFixed(1)}) scale(${(s.f * k).toFixed(4)} ${k.toFixed(4)}) translate(${-PIVOT[0]} ${-PIVOT[1]})`;
+  const tf = `translate(${(s.P.x + shake[0]).toFixed(1)} ${(s.P.y + hop + shake[1]).toFixed(1)}) rotate(${(deg + (pose?.tilt ?? 0)).toFixed(2)}) translate(0 ${D.toFixed(1)}) scale(${squash.sx.toFixed(3)} ${squash.sy.toFixed(3)}) translate(0 ${(-D).toFixed(1)}) scale(${(s.f * k).toFixed(4)} ${k.toFixed(4)}) translate(${-PIVOT[0]} ${-PIVOT[1]})`;
   el.art.setAttribute("transform", tf);
   el.hitG.setAttribute("transform", tf);
   el.bob.classList.toggle("bob", s.mode === "ground" && !s.over && !pose);
@@ -1577,7 +1598,7 @@ function draw(t) {
     blinking ? INK.lids[i] : `<circle cx="${x}" cy="${y}" r="7.5" class="pen-paper"/>${INK.eyes[i]}<circle cx="${(x + gaze[0]).toFixed(1)}" cy="${(y + gaze[1]).toFixed(1)}" r="${pupil}" class="pen-bf"/>`
   ).join("");
   const thinking = bubble.thinking || s.aim?.scanning ? `<circle class="think" cx="120" cy="33" r="14"/>` : "";
-  const cap = isNight() && (s.mode === "ground" || s.mode === "drift" || s.mode === "land") ? nightCap(t) : "";
+  const cap = pose?.cap !== false && isNight() && (s.mode === "ground" || s.mode === "drift" || s.mode === "land") ? headset(t) : "";
   // Recording: a red ring round the ball of his antenna, steady, so the footage shows it.
   const recRing = s.recording && !s.recQuiet ? `<circle cx="120" cy="33" r="10" class="rec-ring"/>` : "";
   el.dyn.innerHTML = INK.stalk + `<circle cx="120" cy="33" r="5.5" class="pen-rf"/>` + recRing + rotor + flame + eyes + thinking + cap + (pose?.art ?? "");
@@ -1634,7 +1655,7 @@ function drawHook(t) {
       el.sparks.innerHTML = sparks(tipAt, a.a, a.scope === "paragraph" ? 0.75 + burst * 1.2 : 0.25 + held * 0.6, t);
     } else el.sparks.innerHTML = "";
     const ring = held > 0.08 ? `<g transform="translate(${a.tip.x.toFixed(1)} ${a.tip.y.toFixed(1)}) rotate(-90)" filter="url(#wobble)"><circle r="13" class="charge" stroke-dasharray="${(held * 81.7).toFixed(1)} 90"/></g>` : "";
-    el.card.innerHTML = ring + (a.target
+    el.card.innerHTML = ring + chargeFx(a, t, held) + (a.target
       ? highlight(a.target.rects, 0, 0, 1, t)
       : a.clip
         ? card(a.clip, a.tip, 1, t)
@@ -1712,6 +1733,69 @@ function sparks(p, ang, power, t) {
     const cls = j() < 0.75 ? "spark-r" : "spark-b";
     out += `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)}L${xm.toFixed(1)} ${ym.toFixed(1)}L${x1.toFixed(1)} ${y1.toFixed(1)}" class="${cls}"/>`;
     if (j() < 0.35) out += `<circle cx="${(x1 + Math.cos(a) * 5).toFixed(1)}" cy="${(y1 + Math.sin(a) * 5).toFixed(1)}" r="${(1.2 + j() * 1.4).toFixed(1)}" class="spark-dot"/>`;
+  }
+  return out;
+}
+
+/** A pen zigzag from (x, y) heading `ang` for `len` px: a little bolt of lightning. */
+function zap(j, x, y, ang, len, kinks = 4) {
+  let d = `M${x.toFixed(1)} ${y.toFixed(1)}`;
+  for (let i = 1; i <= kinks; i++) {
+    const side = (j() * 2 - 1) * len * 0.22 * (i < kinks ? 1 : 0.2);
+    x += (Math.cos(ang) * len) / kinks - Math.sin(ang) * side;
+    y += (Math.sin(ang) * len) / kinks + Math.cos(ang) * side;
+    d += `L${x.toFixed(1)} ${y.toFixed(1)}`;
+  }
+  return d;
+}
+/** The charge, drawn round the tip: streaks of power drawn in towards it and a spinning ring while it
+ *  fills; on taking the paragraph a shockwave, a starburst of bolts and the paragraph's box crackling. */
+function chargeFx(a, t, held) {
+  if (!a.armed) return "";
+  const { x, y } = a.tip;
+  const j = rng(Math.floor(t / BOIL_MS) + 7);
+  let out = "";
+  if (a.scope === "sentence" && held > 0.08) {
+    // Streaks drawn in from all round, closing on the tip as the charge fills.
+    for (let i = 0; i < 10; i++) {
+      const ang = (i / 10) * Math.PI * 2 + t / 900 + j() * 0.3;
+      const r1 = 96 - held * 40 + j() * 14, r0 = r1 - 14 - held * 26;
+      out += `<path d="M${(x + Math.cos(ang) * r1).toFixed(1)} ${(y + Math.sin(ang) * r1).toFixed(1)}L${(x + Math.cos(ang) * r0).toFixed(1)} ${(y + Math.sin(ang) * r0).toFixed(1)}" class="${i % 3 ? "spark-r" : "spark-b"}" stroke-width="3.2" opacity="${(0.35 + held * 0.65).toFixed(2)}"/>`;
+    }
+    out += `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${((t / 4) % 360).toFixed(1)})" filter="url(#wobble)"><circle r="${(34 - held * 10).toFixed(1)}" class="static" stroke-width="3" opacity="${held.toFixed(2)}"/></g>`;
+    if (held > 0.5) for (let i = 0; i < 2; i++) out += `<path d="${zap(j, x, y, j() * Math.PI * 2, 22 + held * 20)}" class="spark-r" stroke-width="3"/>`;
+  }
+  if (a.scope === "paragraph") {
+    const since = t - a.chargedAt;
+    // A double shockwave out from the tip.
+    for (const lag of [0, 110]) {
+      const u = Math.min(1, Math.max(0, (since - lag) / 520));
+      if (u > 0 && u < 1) out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(16 + easeOut(u) * 210).toFixed(1)}" fill="none" stroke="var(--red)" stroke-width="${(7 * (1 - u) + 0.8).toFixed(1)}" opacity="${(1 - u).toFixed(2)}" filter="url(#wobble)"/>`;
+    }
+    // A starburst of bolts.
+    if (since < 560) {
+      const k = easeOut(since / 560);
+      for (let i = 0; i < 12; i++) {
+        const ang = (i / 12) * Math.PI * 2 + 0.3;
+        const r0 = 20 + k * 70;
+        out += `<path d="${zap(j, x + Math.cos(ang) * r0, y + Math.sin(ang) * r0, ang, 34 + k * 60)}" class="${i % 2 ? "spark-r" : "spark-b"}" stroke-width="${(4 - k * 2).toFixed(1)}" opacity="${(1 - k * 0.6).toFixed(2)}"/>`;
+      }
+    }
+    // While held, the paragraph's box crackles with little bolts round its edge.
+    const rs = a.target?.rects;
+    if (rs?.length) {
+      const x0 = Math.min(...rs.map((r) => r.x)) - 8, y0 = Math.min(...rs.map((r) => r.y)) - 8;
+      const x1 = Math.max(...rs.map((r) => r.x + r.w)) + 8, y1 = Math.max(...rs.map((r) => r.y + r.h)) + 8;
+      const per = 2 * (x1 - x0 + y1 - y0);
+      for (let i = 0; i < 9; i++) {
+        let d = j() * per, px, py, ang;
+        if (d < x1 - x0) (px = x0 + d), (py = y0), (ang = -Math.PI / 2);
+        else if ((d -= x1 - x0) < y1 - y0) (px = x1), (py = y0 + d), (ang = 0);
+        else if ((d -= y1 - y0) < x1 - x0) (px = x1 - d), (py = y1), (ang = Math.PI / 2);
+        else (px = x0), (py = y1 - (d - (x1 - x0))), (ang = Math.PI);
+        out += `<path d="${zap(j, px, py, ang + (j() - 0.5) * 1.2, 14 + j() * 20, 3)}" class="${j() < 0.6 ? "spark-r" : "spark-b"}" stroke-width="2.8"/>`;
+      }
+    }
   }
   return out;
 }
