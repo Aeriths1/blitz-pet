@@ -2,7 +2,9 @@
 
 # Blitz Boy
 
-一只住在 macOS 桌面上的排线手绘 Blitzcrank。指向屏幕上任意一句话，他出钩把这句抓回来，结合上下文在头顶的思考气泡里解释它。
+**English** | [中文](README.zh-CN.md)
+
+A pen-hatched Blitzcrank who lives on your macOS desktop. Point at any sentence on screen and he hooks it back, then explains it in a thought bubble above his head, taking the surrounding context into account.
 
 
 https://github.com/user-attachments/assets/1b2523f6-3937-454e-80dd-0217b19cf739
@@ -10,38 +12,38 @@ https://github.com/user-attachments/assets/1b2523f6-3937-454e-80dd-0217b19cf739
 
 
 <p align="center">
-  <img src="docs/media/grab-sentence.gif" width="49%" alt="短按抓一句">
-  <img src="docs/media/grab-paragraph.gif" width="49%" alt="长按抓一段">
+  <img src="docs/media/grab-sentence.gif" width="49%" alt="Tap to grab a sentence">
+  <img src="docs/media/grab-paragraph.gif" width="49%" alt="Hold to grab a paragraph">
 </p>
 <p align="center">
-  <img src="docs/media/idle-sneeze.gif" width="24%" alt="打喷嚏">
-  <img src="docs/media/idle-snatch.gif" width="24%" alt="抓鼠标">
-  <img src="docs/media/idle-dash.gif" width="24%" alt="冲刺">
-  <img src="docs/media/idle-doodle.gif" width="24%" alt="画画">
+  <img src="docs/media/idle-sneeze.gif" width="24%" alt="Sneeze">
+  <img src="docs/media/idle-snatch.gif" width="24%" alt="Snatch the cursor">
+  <img src="docs/media/idle-dash.gif" width="24%" alt="Dash">
+  <img src="docs/media/idle-doodle.gif" width="24%" alt="Doodle">
 </p>
 
-- **指哪抓哪**：网页、PDF、编辑器、终端、聊天窗口，连视频画面里的字都能抓。
-- **短按一句，长按一段**：按住蓄力，进度圈转满就抓整段。
-- **带上下文**：解释时会一并参考所在 App、窗口标题和前后文。
-- **桌宠本色**：看鼠标、挥手、冒蒸汽；拎起来乱晃，甩出去会撞墙反弹；没人理时像老式 DVD 屏保一样满屏飘。
+- **Grab anything**: web pages, PDFs, editors, terminals, chat windows, even text inside a video frame.
+- **Tap for a sentence, hold for a paragraph**: hold to charge, and when the ring fills he grabs the whole paragraph.
+- **Reads the context**: the explanation also looks at the app, the window title and the surrounding text.
+- **A proper desk pet**: he watches your cursor, waves and puffs steam. Pick him up and shake him, throw him and he bounces off the walls. Leave him alone and he drifts around the screen like an old DVD screensaver. When he's bored he listens to music, DJs, plays guitar or violin, sings, or doodles on an easel.
 
-## 系统要求
+## Requirements
 
-| 项目 | 要求 |
+| | |
 |---|---|
-| 系统 | **macOS 13 Ventura 及以上**（只支持 Mac；取词依赖 macOS 的辅助功能接口和 Vision 文字识别） |
-| 芯片 | Apple Silicon 和 Intel 都支持，下载时选对应的安装包 |
-| Claude Code | 已安装并登录。解释由本机的 `claude -p` 生成（见“模型配置”）；没装时出钩、待机动画照常，只是不出解释 |
+| System | **macOS 13 Ventura or later** (Mac only: grabbing text relies on macOS Accessibility and Vision text recognition) |
+| Chip | Apple Silicon and Intel, download the matching build |
+| Claude Code | Installed and logged in. Explanations come from your local `claude -p` (see "Model settings"). Without it the hook and the idle animations still work, there's just no explanation |
 
-## 安装
+## Install
 
-1. 下载 [Releases](https://github.com/Aeriths1/blitz-pet/releases/latest) 里的安装包：M 系列芯片选 `arm64`，Intel 选 `x64`。
-2. 打开安装包，把 Blitz Boy 拖进“应用程序”。
-3. 第一次打开被拦时，去 **系统设置 › 隐私与安全性**，拉到底点“仍要打开”。
+1. Download a build from [Releases](https://github.com/Aeriths1/blitz-pet/releases/latest): `arm64` for M-series chips, `x64` for Intel.
+2. Open the DMG and drag Blitz Boy into Applications.
+3. If macOS blocks the first launch, go to **System Settings › Privacy & Security**, scroll to the bottom and click "Open Anyway".
 
-### 从源码运行
+### Run from source
 
-需要 Node.js 18 及以上和 Xcode Command Line Tools（`xcode-select --install`）。
+Requires Node.js 18+ and the Xcode Command Line Tools (`xcode-select --install`).
 
 ```bash
 git clone https://github.com/Aeriths1/blitz-pet.git blitz-pet
@@ -59,22 +61,22 @@ npm run build:native
 npm start
 ```
 
-自己打安装包：`npm run dist`，产物在 `dist/`。
+To build the DMG yourself: `npm run dist`, output in `dist/`.
 
-## 权限
+## Permissions
 
-在 **系统设置 › 隐私与安全性** 里，给运行 Blitz 的程序开两项权限：装了安装包的是 **Blitz Boy**；用 `npm start` 运行时是 `node_modules/electron/dist/Electron.app`，名字显示为 **Electron**。
+In **System Settings › Privacy & Security**, give two permissions to the app running Blitz: **Blitz Boy** if you installed the DMG, or **Electron** (`node_modules/electron/dist/Electron.app`) when running with `npm start`.
 
-| 权限 | 用途 | 没开时 |
+| Permission | Used for | Without it |
 |---|---|---|
-| **辅助功能** | 读取指针下文字的原文、位置和前后文 | 只能靠截屏识字，速度慢一些，偶有错字 |
-| **屏幕与系统录音** | 截屏识字（视频画面、图片、不开放文字的 App） | 只能抓开放文字的 App |
+| **Accessibility** | Reading the original text under the pointer, its position and the text around it | Falls back to reading the screen, a bit slower and with the odd typo |
+| **Screen & System Audio Recording** | Reading text from the screen (video frames, images, apps that don't expose their text) | Only apps that expose their text can be grabbed |
 
-两项都没开时，Blitz 退回抓剪贴板里的文字。开完权限后重启 Blitz。
+With neither, Blitz grabs whatever text is on the clipboard. Restart Blitz after granting permissions.
 
-## 模型配置
+## Model settings
 
-解释调用本机的 Claude Code（`claude -p`），用的是你自己的 Claude Code 登录和额度，不需要另填 API key。默认设置在项目根目录的 **`config.json`**；装了安装包的话，把要改的项写进 **`~/Library/Application Support/Blitz Boy/config.json`**（只写要改的项即可，它会覆盖默认值；从源码运行时也生效）：
+Explanations go through your local Claude Code (`claude -p`), using your own Claude Code login and usage. No API key needed. The defaults live in **`config.json`** at the project root. With the DMG installed, put the settings you want to change in **`~/Library/Application Support/Blitz Boy/config.json`** (only the keys you change; they override the defaults, and this also works when running from source):
 
 ```json
 {
@@ -85,93 +87,103 @@ npm start
 }
 ```
 
-| 字段 | 含义 | 可选值 |
+| Key | Meaning | Values |
 |---|---|---|
-| `model` | 用哪个模型解释 | `claude-opus-5-5`（默认，最强）、`claude-sonnet-5-5`（更快）、`claude-haiku-5-5`（最快、最省） |
-| `effort` | 思考力度，越高越慢 | `low`（默认）、`medium`、`high` |
-| `claudeBin` | Claude Code 可执行文件的路径；留空时自动查找 | 例如 `/opt/homebrew/bin/claude` |
-| `configDir` | Blitz 专用的 Claude Code 配置目录，里面存着它自己的登录，所以可以和终端用不同的账号；留空时和终端共用同一个登录 | 默认留空 |
+| `model` | Model used for explanations | `claude-opus-5-5` (default, strongest), `claude-sonnet-5-5` (faster), `claude-haiku-5-5` (fastest, cheapest) |
+| `effort` | How hard it thinks; higher is slower | `low` (default), `medium`, `high` |
+| `claudeBin` | Path to the Claude Code executable; found automatically when empty | e.g. `/opt/homebrew/bin/claude` |
+| `configDir` | A Claude Code config directory just for Blitz, holding its own login, so it can use a different account from your terminal; empty shares the terminal's login | Empty by default |
 
-- 改完保存即可，下一次出钩就生效，不用重启。
-- `claudeBin` 留空时，按以下顺序查找：Claude 桌面版自带的 CLI → `~/.local/bin/claude` → `/opt/homebrew/bin/claude` → `/usr/local/bin/claude` → `PATH` 里的 `claude`。
-- 要让 Blitz 用单独的账号，把 `configDir` 设成例如 `~/.claude-blitz`，再给 Blitz 单独登录一次（只需一次）：在终端运行 `CLAUDE_CONFIG_DIR=~/.claude-blitz claude`，输入 `/login` 登录要给 Blitz 用的账号，登录后退出即可。终端里平常的 `claude` 不受影响。
-- 环境变量优先于 `config.json`：`BLITZ_MODEL`、`BLITZ_EFFORT`、`CLAUDE_BIN`、`BLITZ_CLAUDE_CONFIG_DIR`。例如临时换模型：
+- Changes take effect on the next hook, no restart needed.
+- When `claudeBin` is empty, Blitz looks in this order: the CLI bundled with the Claude desktop app → `~/.local/bin/claude` → `/opt/homebrew/bin/claude` → `/usr/local/bin/claude` → `claude` on `PATH`.
+- To give Blitz its own account, set `configDir` to e.g. `~/.claude-blitz` and log in once for Blitz: run `CLAUDE_CONFIG_DIR=~/.claude-blitz claude` in a terminal, type `/login`, log in with the account Blitz should use, then quit. Your usual `claude` in the terminal is unaffected.
+- Environment variables override `config.json`: `BLITZ_MODEL`, `BLITZ_EFFORT`, `CLAUDE_BIN`, `BLITZ_CLAUDE_CONFIG_DIR`. For example, to try another model once:
 
 ```bash
 BLITZ_MODEL=claude-haiku-5-5 npm start
 ```
 
-- 调用时不加载你的 hooks、插件、MCP、CLAUDE.md 和工具，只发提示词。
-- 系统设置了代理而终端没有时，会自动沿用 macOS 的系统代理。
+- The call loads none of your hooks, plugins, MCP servers, CLAUDE.md or tools; only the prompt is sent.
+- If macOS has a system proxy and your terminal doesn't, Blitz uses the system proxy.
 
-### 发给模型的内容
+### What gets sent to the model
 
-| 内容 | 来源 |
+| Content | Source |
 |---|---|
-| 被抓的句子或段落 | 指针所在处 |
-| 上下文 | 网页取整页正文；普通文本取前后约 2000 字；截屏识字时取同一窗口里的文字。以句子为中心，最多约 6000 字 |
-| App 名和窗口标题 | 指针所在的窗口 |
+| The grabbed sentence or paragraph | Under the pointer |
+| Context | The full article text for web pages; about 2,000 characters on each side for plain text; the text of the same window when reading the screen. Centered on the sentence, about 6,000 characters at most |
+| App name and window title | The window under the pointer |
 
-截屏只在瞄准时拍一张，识字后立即删除，不保存。
+The screenshot is taken only while aiming, deleted right after the text is read, and never saved.
 
-## 用法
+## Usage
 
-| 操作 | 效果 |
+| Action | Result |
 |---|---|
-| 点一下 Blitz，或按 **⌥Q** | 进入瞄准：射道从他手臂指向鼠标，指到的句子盖上红色排线 |
-| 瞄准时**短按** | 出钩，抓这一句 |
-| 瞄准时**按住约半秒** | 蓄力，进度圈转满后抓整段 |
-| 瞄准时按 **Esc** 或**右键** | 收起钩子 |
-| 思考气泡里的 **复制** / **✕** | 复制解释 / 关闭气泡 |
-| 按住 Blitz 拖动 | 拎起来；松手甩出去，撞墙反弹后落地 |
-| 鼠标停在 Blitz 身上 | 看你、挥手，久一点会转天线冒蒸汽 |
-| Blitz 45 秒没人理（鼠标没碰他） | 在原地画一幅小画，其余时候在原地做小动作 |
-| 5 分钟电脑没人操作（键盘鼠标都没动） | 才会离开原地：起飞满屏飘（撞到屏幕角落会庆祝）、玩跳跳、冲刺、沿屏幕底部溜达；鼠标碰到他就落回地面 |
+| Click Blitz, or press **⌥Q** | Aim: a lane runs from his arm to your cursor, and the sentence under it gets red hatching |
+| **Tap** while aiming | Fire the hook and grab that sentence |
+| **Hold about half a second** while aiming | Charge; when the ring fills he grabs the whole paragraph |
+| **Esc** or **right-click** while aiming | Put the hook away |
+| **Copy** / **✕** in the bubble | Copy the explanation / close the bubble |
+| Drag Blitz | Pick him up; let go to throw him, he bounces off the walls and lands |
+| Hover over Blitz | He looks at you and waves; stay longer and he spins his antenna and puffs steam |
+| Right-click Blitz | His own menu: idle animations, accessories, and the language (follows your system; switch between English and Chinese here, explanations follow it too) |
+| Blitz ignored for 45 seconds (cursor hasn't touched him) | He doodles or plays a little idle animation where he stands |
+| Computer idle for 5 minutes (no keyboard or mouse) | Only then does he wander: flies around the screen (celebrates when he hits a corner), plays a jumping game, dashes, strolls along the bottom of the screen. Touch him with the cursor and he drops back down |
 
-### 菜单栏
+### Menu bar
 
-| 菜单项 | 作用 |
+The menu bar menu is in Chinese; the English meaning is given here.
+
+| Menu item | What it does |
 |---|---|
-| 出钩抓一句（⌥Q） | 进入瞄准 |
-| 回到右下角 | 从屏幕顶上掉回右下角 |
-| 录一段掌机（⌥⇧R） | 隐藏其他 App、开始录屏，让他自己玩一局掌机，结束后自动停止录制；录制中别把鼠标指到他身上 |
-| 待机时满屏飘 | 开关待机漂移 |
-| 现在就飘 | 立刻起飞 |
-| 退出 | 退出 Blitz |
+| 隐藏 / 显示 Blitz Boy (Hide / Show, **⌃⇧H**) | Hide him or bring him back |
+| 出钩抓一句 (Hook a sentence, **⌥Q**) | Start aiming |
+| 回到右下角 (Back to the corner) | Drop him back to the bottom-right corner |
+| 待机时自己玩 (Play on his own when idle) | Toggle drifting and jumping when idle |
+| 现在就飘 (Drift now) | Take off right away |
+| 玩 Doodle Jump (Play Doodle Jump) | Steer with the mouse, Esc to stop |
+| 看他自己跳 (Watch him play) | He plays a round by himself |
+| 待机动画 (Idle animations) | Play one on demand: music, DJ, guitar, singing, violin, doodling and more |
+| 装饰 (Accessories) | Headphones and sunglasses, each on its own checkbox |
+| 退出 (Quit) | Quit Blitz |
 
-## 取词方式
+Press **⌃⇧E** for his entrance: he rises from the bottom of the screen wearing sunglasses.
 
-按以下顺序，取到为止：
+## How text is grabbed
 
-1. **辅助功能**（`native/ax-at`）：直接读 App 里的原文和每个字的位置，约 0.1 秒。原生文本、Safari、Chrome、Electron 应用（Obsidian、VS Code、Cursor）都可以。
-2. **截屏识字**（`native/ocr`，Apple Vision）：读不到原文时使用，例如视频里的字、图片、PDF 跨行的段落。整屏识别约 0.8 秒；首次运行要加载识别模型，会慢一些。
-3. **剪贴板**：两项权限都没有时使用。
+In this order, until one works:
 
-Electron 应用和 Chrome 默认不开放网页里的文字，Blitz 抓取时会替它们打开辅助功能模式（和开启 VoiceOver 时相同）。
+1. **Accessibility** (`native/ax-at`): reads the app's original text and the position of every character, in about 0.1 s. Works with native text, Safari, Chrome and Electron apps (Obsidian, VS Code, Cursor).
+2. **Reading the screen** (`native/ocr`, Apple Vision): used when the original text isn't available, e.g. text in videos, images, paragraphs broken across lines in PDFs. A full-screen read takes about 0.8 s; the first run loads the recognition model and is slower.
+3. **Clipboard**: used when neither permission is granted.
 
-## 目录
+Electron apps and Chrome don't expose web page text by default; Blitz switches on their accessibility mode when grabbing (the same as when VoiceOver is on).
+
+## Layout
 
 ```
-main.cjs            透明窗口、菜单栏、快捷键、截屏、取词、调用模型
-preload.cjs         页面与主进程之间的接口
-index.html          样式与思考气泡
-config.json         模型配置
-src/blitz.mjs       桌宠行为、钩子、绘制
-src/text.mjs        截屏识字结果的拼段与断句
-src/claude.cjs      调用 Claude Code
-src/pen.mjs         排线笔触
-src/sound.mjs       钩子音效（出钩、蓄力）
-native/ax-at.swift  辅助功能取词
-native/ocr.swift    Vision 截屏识字
-assets/             Blitz 的 SVG 部件、菜单栏图标与音效
+main.cjs            Transparent window, menu bar, shortcuts, screenshots, grabbing text, calling the model
+preload.cjs         Bridge between the page and the main process
+index.html          Styles and the thought bubble
+config.json         Model settings
+src/blitz.mjs       Behavior, the hook, drawing
+src/acts.mjs        Idle animations
+src/text.mjs        Joining and splitting screen-read text into sentences
+src/claude.cjs      Calling Claude Code
+src/pen.mjs         Hatched pen strokes
+src/sound.mjs       Hook sounds (fire, charge)
+native/ax-at.swift  Grabbing text via Accessibility
+native/ocr.swift    Reading the screen with Vision
+assets/             Blitz's SVG parts, menu bar icon and sounds
 ```
 
-## 声明
+## Disclaimer
 
-Blitzcrank 是 Riot Games《英雄联盟》中的角色。本项目为非官方同人作品，与 Riot Games 无关，未经 Riot Games 认可，免费、非商业。Blitz 的排线画风为本项目原创绘制。
+Blitzcrank is a character from Riot Games' League of Legends. This is an unofficial fan project, not affiliated with or endorsed by Riot Games, free and non-commercial. Blitz's pen-hatched art is original to this project.
 
-`assets/sfx/` 里的音效为本项目原创，用 [earshot](https://github.com/Leonxlnx/earshot)（MIT）的代码合成音效叠混而成，不含任何录音或游戏音效，来源见 `assets/sfx/SOURCES.md`。
+The sounds in `assets/sfx/` are original to this project, layered from synthesized effects made with the code of [earshot](https://github.com/Leonxlnx/earshot) (MIT). They contain no recordings or game audio; sources are in `assets/sfx/SOURCES.md`.
 
-## 许可证
+## License
 
-代码、原创手绘与音效以 [MIT](LICENSE) 许可发布。Blitzcrank 角色形象不在许可范围内，版权归 Riot Games 所有。
+The code, original artwork and sounds are released under the [MIT](LICENSE) license. The Blitzcrank character is not covered by the license and is the property of Riot Games.
