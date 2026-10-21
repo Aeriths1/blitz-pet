@@ -1,8 +1,13 @@
+
+
 # Blitz Boy
 
 一只住在 macOS 桌面上的排线手绘 Blitzcrank。指向屏幕上任意一句话，他出钩把这句抓回来，结合上下文在头顶的思考气泡里解释它。
 
-▶ 宣传视频（57 秒）：[docs/media/blitz-boy-promo.mp4](docs/media/blitz-boy-promo.mp4)
+
+https://github.com/user-attachments/assets/1b2523f6-3937-454e-80dd-0217b19cf739
+
+
 
 <p align="center">
   <img src="docs/media/grab-sentence.gif" width="49%" alt="短按抓一句">
