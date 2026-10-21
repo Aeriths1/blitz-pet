@@ -39,7 +39,7 @@ https://github.com/user-attachments/assets/1b2523f6-3937-454e-80dd-0217b19cf739
 
 1. Download a build from [Releases](https://github.com/Aeriths1/blitz-pet/releases/latest): `arm64` for M-series chips, `x64` for Intel.
 2. Open the DMG and drag Blitz Boy into Applications.
-3. If macOS blocks the first launch, go to **System Settings › Privacy & Security**, scroll to the bottom and click "Open Anyway".
+3. The app is ad-hoc signed but not notarized (no paid Apple Developer account yet), so macOS blocks the first launch. Go to **System Settings › Privacy & Security**, scroll to the bottom and click "Open Anyway". If you'd rather not, build it from source below.
 
 ### Run from source
 
@@ -133,20 +133,20 @@ The screenshot is taken only while aiming, deleted right after the text is read,
 
 ### Menu bar
 
-The menu bar menu is in Chinese; the English meaning is given here.
+The menu bar menu follows the same language as his right-click menu.
 
 | Menu item | What it does |
 |---|---|
-| 隐藏 / 显示 Blitz Boy (Hide / Show, **⌃⇧H**) | Hide him or bring him back |
-| 出钩抓一句 (Hook a sentence, **⌥Q**) | Start aiming |
-| 回到右下角 (Back to the corner) | Drop him back to the bottom-right corner |
-| 待机时自己玩 (Play on his own when idle) | Toggle drifting and jumping when idle |
-| 现在就飘 (Drift now) | Take off right away |
-| 玩 Doodle Jump (Play Doodle Jump) | Steer with the mouse, Esc to stop |
-| 看他自己跳 (Watch him play) | He plays a round by himself |
-| 待机动画 (Idle animations) | Play one on demand: music, DJ, guitar, singing, violin, doodling and more |
-| 装饰 (Accessories) | Headphones and sunglasses, each on its own checkbox |
-| 退出 (Quit) | Quit Blitz |
+| Hide / Show Blitz Boy (**⌃⇧H**) | Hide him or bring him back |
+| Hook a Sentence (**⌥Q**) | Start aiming |
+| Back to the Corner | Drop him back to the bottom-right corner |
+| Play on His Own When Idle | Toggle drifting and jumping when idle |
+| Float Now | Take off right away |
+| Play Doodle Jump | Steer with the mouse, Esc to stop |
+| Watch Him Jump | He plays a round by himself |
+| Idle Animations | Play one on demand: music, DJ, guitar, singing, violin, doodling and more |
+| Accessories | Headphones and sunglasses, each on its own checkbox |
+| Quit | Quit Blitz |
 
 Press **⌃⇧E** for his entrance: he rises from the bottom of the screen wearing sunglasses.
 

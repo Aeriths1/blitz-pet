@@ -174,8 +174,8 @@ async function* explain(q, signal) {
   };
   let stderr = "";
   proc.stderr.on("data", (d) => (stderr = (stderr + d).slice(-2000)));
-  proc.on("error", (err) => push({ kind: "error", text: `启动不了 Claude Code（${claudeBin()}）：${err.message}` }));
-  proc.on("close", (code) => push({ kind: "error", text: signal?.aborted ? "" : stderr.trim().split("\n").pop() || `Claude Code 退出了（${code}），没有回答。` }));
+  proc.on("error", (err) => push({ kind: "error", text: q.lang === "en" ? `Couldn't start Claude Code (${claudeBin()}): ${err.message}` : `启动不了 Claude Code（${claudeBin()}）：${err.message}` }));
+  proc.on("close", (code) => push({ kind: "error", text: signal?.aborted ? "" : stderr.trim().split("\n").pop() || (q.lang === "en" ? `Claude Code exited (${code}) without an answer.` : `Claude Code 退出了（${code}），没有回答。`) }));
   readline.createInterface({ input: proc.stdout }).on("line", (line) => {
     let msg;
     try {
@@ -187,7 +187,7 @@ async function* explain(q, signal) {
       const ev = msg.event;
       if (ev?.type === "content_block_delta" && ev.delta?.type === "text_delta" && ev.delta.text) push({ kind: "delta", text: ev.delta.text });
     } else if (msg.type === "result") {
-      if (msg.is_error) push({ kind: "error", text: String(msg.result || msg.errors?.join("; ") || "Claude Code 出错了") });
+      if (msg.is_error) push({ kind: "error", text: String(msg.result || msg.errors?.join("; ") || (q.lang === "en" ? "Claude Code ran into an error" : "Claude Code 出错了")) });
       else push({ kind: "done" });
     }
   });

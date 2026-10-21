@@ -14,7 +14,9 @@ let rec = null; // made once the app is ready (it needs the screen module)
 let win = null;
 let tray = null;
 // The settings both menus show (the menu bar's and his own right-click one).
-let prefs = { drift: true, phones: false, shades: false };
+let prefs = { drift: true, phones: false, shades: false, lang: "" };
+// Messages in his language: what his page last said, else the system's.
+const say = (zh, en) => ((prefs.lang || (/^zh/i.test(app.getLocale()) ? "zh" : "en")) === "en" ? en : zh);
 const running = new Map();
 
 function fit() {
@@ -63,7 +65,7 @@ const run = (cmd, args) =>
   new Promise((ok, no) => execFile(cmd, args, { maxBuffer: 64 * 1024 * 1024 }, (err, out, errOut) => (err ? no(new Error(String(errOut || err.message).trim())) : ok(out))));
 ipcMain.handle("scan", async () => {
   if (process.platform === "darwin" && systemPreferences.getMediaAccessStatus("screen") !== "granted") {
-    return { error: `要读屏幕上的字，需要在 系统设置 › 隐私与安全性 › 屏幕与系统录音 里允许这个程序（${app.isPackaged ? "Blitz Boy" : "Electron"}），然后重开 Blitz。` };
+    return { error: say(`要读屏幕上的字，需要在 系统设置 › 隐私与安全性 › 屏幕与系统录音 里允许这个程序（${app.isPackaged ? "Blitz Boy" : "Electron"}），然后重开 Blitz。`, `To read text on screen, allow this app (${app.isPackaged ? "Blitz Boy" : "Electron"}) in System Settings › Privacy & Security › Screen & System Audio Recording, then restart Blitz.`) };
   }
   const dir = path.join(tmpdir(), "blitz-pet");
   mkdirSync(dir, { recursive: true });
@@ -74,7 +76,7 @@ ipcMain.handle("scan", async () => {
     else win.setContentProtection(true);
     await run("/usr/sbin/screencapture", ["-x", "-m", "-t", "png", file]);
   } catch (e) {
-    return { error: `截屏失败：${e.message}` };
+    return { error: say(`截屏失败：${e.message}`, `Screenshot failed: ${e.message}`) };
   } finally {
     win?.setContentProtection(false);
   }
@@ -90,7 +92,7 @@ ipcMain.handle("scan", async () => {
     }));
     return { lines };
   } catch (e) {
-    return { error: `识别失败：${e.message}` };
+    return { error: say(`识别失败：${e.message}`, `Text recognition failed: ${e.message}`) };
   } finally {
     rmSync(file, { force: true });
   }
@@ -189,45 +191,46 @@ function enter() {
   menu();
 }
 function menu() {
+  const T = say;
   tray ??= new Tray(nativeImage.createFromPath(path.join(__dirname, "assets", "trayTemplate.png")));
   tray.setToolTip("Blitz Boy");
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: win && !win.isDestroyed() && !win.isVisible() ? "显示 Blitz Boy" : "隐藏 Blitz Boy", accelerator: "Control+Shift+H", click: toggleShown },
-      { label: "出钩抓一句", accelerator: "Alt+Q", click: () => send("cmd", "aim") },
-      { label: "回到右下角", click: () => send("cmd", "home") },
+      { label: win && !win.isDestroyed() && !win.isVisible() ? T("显示 Blitz Boy", "Show Blitz Boy") : T("隐藏 Blitz Boy", "Hide Blitz Boy"), accelerator: "Control+Shift+H", click: toggleShown },
+      { label: T("出钩抓一句", "Hook a Sentence"), accelerator: "Alt+Q", click: () => send("cmd", "aim") },
+      { label: T("回到右下角", "Back to the Corner"), click: () => send("cmd", "home") },
       { type: "separator" },
-      { label: "待机时自己玩（飘 / 跳）", type: "checkbox", checked: prefs.drift, click: (i) => ((prefs.drift = i.checked), send("cmd", i.checked ? "drift-on" : "drift-off")) },
-      { label: "现在就飘", click: () => send("cmd", "drift-now") },
+      { label: T("待机时自己玩（飘 / 跳）", "Play on His Own When Idle"), type: "checkbox", checked: prefs.drift, click: (i) => ((prefs.drift = i.checked), send("cmd", i.checked ? "drift-on" : "drift-off")) },
+      { label: T("现在就飘", "Float Now"), click: () => send("cmd", "drift-now") },
       { type: "separator" },
-      { label: "玩 Doodle Jump（鼠标左右，Esc 结束）", click: () => send("cmd", "play") },
-      { label: "看他自己跳", click: () => send("cmd", "autoplay") },
+      { label: T("玩 Doodle Jump（鼠标左右，Esc 结束）", "Play Doodle Jump (Mouse to Steer, Esc to Stop)"), click: () => send("cmd", "play") },
+      { label: T("看他自己跳", "Watch Him Jump"), click: () => send("cmd", "autoplay") },
       { type: "separator" },
       {
-        label: "待机动画",
+        label: T("待机动画", "Idle Animations"),
         submenu: [
-          ["ring", "打嗝冒烟圈"],
-          ["sneeze", "火苗打喷嚏"],
-          ["punch", "试一拳"],
-          ["nap", "打盹"],
-          ["dash", "超速冲刺"],
-          ["chime", "整点报时"],
-          ["snatch", "抓鼠标"],
-          ["doodle", "画一幅小画"],
-          ["music", "戴耳机听歌"],
-          ["guitar", "弹吉他"],
-          ["dj", "打碟"],
-          ["sing", "唱歌"],
-          ["violin", "拉小提琴"],
+          ["ring", "打嗝冒烟圈", "Smoke Ring"],
+          ["sneeze", "火苗打喷嚏", "Sneeze"],
+          ["punch", "试一拳", "Punch"],
+          ["nap", "打盹", "Nap"],
+          ["dash", "超速冲刺", "Dash"],
+          ["chime", "整点报时", "Chime"],
+          ["snatch", "抓鼠标", "Snatch the Cursor"],
+          ["doodle", "画一幅小画", "Doodle"],
+          ["music", "戴耳机听歌", "Music"],
+          ["guitar", "弹吉他", "Guitar"],
+          ["dj", "打碟", "DJ"],
+          ["sing", "唱歌", "Sing"],
+          ["violin", "拉小提琴", "Violin"],
         ]
-          .map(([name, label]) => ({ label, click: () => send("cmd", `act:${name}`) })),
+          .map(([name, zh, eng]) => ({ label: T(zh, eng), click: () => send("cmd", `act:${name}`) })),
       },
       {
         // What he wears: headphones and sunglasses, each on its own.
-        label: "装饰",
+        label: T("装饰", "Accessories"),
         submenu: [
-          { label: "戴耳机", type: "checkbox", checked: prefs.phones, click: (i) => ((prefs.phones = i.checked), send("cmd", i.checked ? "phones-on" : "phones-off")) },
-          { label: "戴墨镜", type: "checkbox", checked: prefs.shades, click: (i) => ((prefs.shades = i.checked), send("cmd", i.checked ? "shades-on" : "shades-off")) },
+          { label: T("戴耳机", "Headphones"), type: "checkbox", checked: prefs.phones, click: (i) => ((prefs.phones = i.checked), send("cmd", i.checked ? "phones-on" : "phones-off")) },
+          { label: T("戴墨镜", "Sunglasses"), type: "checkbox", checked: prefs.shades, click: (i) => ((prefs.shades = i.checked), send("cmd", i.checked ? "shades-on" : "shades-off")) },
         ],
       },
       // Recording and promo takes are for working on him from the source tree.
@@ -237,11 +240,11 @@ function menu() {
         // A promo take: the same recording and log, without the red ring on his antenna.
         { label: "宣传片录制（不显示红圈）", enabled: !rec?.on, click: () => (send("cmd", "rec-quiet"), setRecording(true, { clicks: false })) },
         { label: "录一段掌机（干净桌面，自动停止）", accelerator: "Alt+Shift+R", click: recordGame },
-        { label: "入场动画（从底下缓缓飞上来）", accelerator: "Control+Shift+E", click: enter },
+        { label: T("入场动画（从底下缓缓飞上来）", "Entrance"), accelerator: "Control+Shift+E", click: enter },
         { label: "打开录制文件夹", click: () => shell.openPath(path.join(__dirname, "recordings")) },
       ]),
       { type: "separator" },
-      { label: "退出", role: "quit" },
+      { label: T("退出", "Quit"), role: "quit" },
     ])
   );
 }

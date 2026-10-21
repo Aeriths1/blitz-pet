@@ -62,6 +62,8 @@ const W = () => window.innerWidth;
 // The flame hangs below his feet; leave room for it.
 const GROUND = () => window.innerHeight - 4 - 22 * B;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+/** Words in his language (set in his own menu). */
+const say = (zh, en) => (menu.lang === "en" ? en : zh);
 const lerp = (a, b, t) => a + (b - a) * t;
 const easeOut = (t) => 1 - (1 - t) * (1 - t);
 const seeds = rng(97);
@@ -398,7 +400,7 @@ async function startAim(from = "click") {
     a.clip = ((await host.clip()) || "").trim();
     if (res.error && !warned) {
       warned = true;
-      bubble.note(res.error + "\n现在先抓剪贴板。", 7000);
+      bubble.note(res.error + say("\n现在先抓剪贴板。", "\nGrabbing the clipboard for now."), 7000);
     }
   }
   if (s.aim === a) aimAt(a.tip.x, a.tip.y);
@@ -515,7 +517,7 @@ function castDone() {
   set(onGround() ? "ground" : "fall");
   catchMouse();
   if (c.hit) bubble.ask(c.target ? { text: c.text, context: c.target.context, title: c.target.title, app: c.target.app, scope: c.target.scope, url: c.target.url, doc: c.target.doc, ocr: c.target.via === "ocr" } : { text: c.text });
-  else if (!c.target && c.clip === "" && warned) bubble.note("剪贴板里没有文字。先复制一段，再出钩。", 3200);
+  else if (!c.target && c.clip === "" && warned) bubble.note(say("剪贴板里没有文字。先复制一段，再出钩。", "Nothing on the clipboard. Copy some text first, then hook it."), 3200);
 }
 
 /* ---------- the thought bubble ---------- */
@@ -562,7 +564,7 @@ const bubble = (() => {
     // Where it came from: a web page (its site) or a document.
     const web = from?.url && /^https?:/.test(from.url) ? from.url : null;
     const label = web ? new URL(web).hostname.replace(/^www\./, "") : from?.doc ? decodeURIComponent(from.doc.split("/").pop()) : from?.app || "";
-    source.textContent = label ? `来自 ${label}` : "";
+    source.textContent = label ? say(`来自 ${label}`, `from ${label}`) : "";
     source.title = web || from?.doc || from?.title || "";
     source.style.display = label ? "" : "none";
   };
@@ -590,8 +592,8 @@ const bubble = (() => {
 
   copy.addEventListener("click", () => {
     host.copy(answer);
-    copy.textContent = "已复制";
-    setTimeout(() => (copy.textContent = "复制"), 1200);
+    copy.textContent = say("已复制", "Copied");
+    setTimeout(() => (copy.textContent = say("复制", "Copy")), 1200);
   });
   box.querySelector(".close").addEventListener("click", () => close());
   source.addEventListener("click", () => (from?.url || from?.doc) && host.open(from.url || from.doc));
@@ -686,6 +688,13 @@ const menu = (() => {
     } catch {}
     return /^zh/i.test(navigator.language) ? "zh" : "en";
   })();
+  // The menu bar menu and the bubble's buttons speak the same language.
+  const relabel = () => {
+    host.pref?.({ lang });
+    const c = document.querySelector("#bubble .copy");
+    if (c) c.textContent = lang === "en" ? "Copy" : "复制";
+  };
+  relabel();
   const ACT_EN = { ring: "Smoke ring", sneeze: "Sneeze", punch: "Punch", nap: "Nap", dash: "Dash", chime: "Chime", snatch: "Snatch", doodle: "Doodle", music: "Music", guitar: "Guitar", dj: "DJ", sing: "Sing", violin: "Violin", enter: "Entrance" };
   const T = (zh, en) => (lang === "en" ? en : zh);
   const switchLang = () => {
@@ -693,6 +702,7 @@ const menu = (() => {
     try {
       localStorage.setItem("blitz-lang", lang);
     } catch {}
+    relabel();
     render();
   };
   const sections = () => [
@@ -1231,7 +1241,7 @@ function endGame(early) {
       best = Math.max(g.score, Number(localStorage.getItem("blitz-best") || 0));
       localStorage.setItem("blitz-best", String(best));
     } catch {}
-    bubble.note(`爬了 ${g.score} 米${g.score >= best && g.score > 0 ? "，新纪录！" : `（最高 ${best} 米）`}`, 3200);
+    bubble.note(say(`爬了 ${g.score} 米${g.score >= best && g.score > 0 ? "，新纪录！" : `（最高 ${best} 米）`}`, `Climbed ${g.score} m${g.score >= best && g.score > 0 ? ", new record!" : ` (best ${best} m)`}`), 3200);
   }
   // The handheld snaps shut and he comes back to full size, dropping in from where it stood.
   puff({ x: g.box.x + g.box.w / 2, y: g.box.y + g.box.h / 2 }, 0, -20, 10, 34, 700);
