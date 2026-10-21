@@ -7,9 +7,59 @@
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
-    "build:native": "swiftc -O native/ocr.swift -o native/ocr && swiftc -O native/ax-at.swift -o native/ax-at"
+    "build:native": "for n in ocr ax-at; do swiftc -O -target arm64-apple-macos13 native/$n.swift -o native/$n-arm64 && swiftc -O -target x86_64-apple-macos13 native/$n.swift -o native/$n-x64 && lipo -create native/$n-arm64 native/$n-x64 -output native/$n && rm native/$n-arm64 native/$n-x64; done",
+    "dist": "npm run build:native && electron-builder --mac"
   },
   "devDependencies": {
-    "electron": "44.7.0"
-  }
+    "electron": "44.7.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "io.github.aeriths1.blitzboy",
+    "productName": "Blitz Boy",
+    "copyright": "Blitz Boy is an unofficial fan project, not affiliated with Riot Games.",
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "index.html",
+      "config.json",
+      "LICENSE",
+      "src/**",
+      "assets/**",
+      "native/ocr",
+      "native/ax-at"
+    ],
+    "asarUnpack": [
+      "native/ocr",
+      "native/ax-at"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.utilities",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "icon": "build/icon.icns",
+      "extendInfo": {
+        "LSUIElement": true,
+        "NSAppleEventsUsageDescription": "Blitz Boy reads the text under your pointer."
+      }
+    },
+    "dmg": {
+      "title": "Blitz Boy",
+      "artifactName": "BlitzBoy-${version}-${arch}.dmg"
+    }
+  },
+  "author": "Aeriths1"
 }

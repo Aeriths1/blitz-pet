@@ -11,14 +11,18 @@ const { dirname, join } = require("node:path");
 const readline = require("node:readline");
 
 /**
- * The model settings, from config.json at the project root, read on every call so an edit takes
- * effect at the next hook. BLITZ_MODEL, BLITZ_EFFORT, CLAUDE_BIN and BLITZ_CLAUDE_CONFIG_DIR override it.
+ * The model settings, read on every call so an edit takes effect at the next hook: config.json at the
+ * project root, then ~/Library/Application Support/Blitz Boy/config.json over it (the one to edit when
+ * he runs as an app). BLITZ_MODEL, BLITZ_EFFORT, CLAUDE_BIN and BLITZ_CLAUDE_CONFIG_DIR override both.
  */
+const USER_CONFIG = join(homedir(), "Library/Application Support/Blitz Boy/config.json");
 function settings() {
   let c = {};
-  try {
-    c = JSON.parse(readFileSync(join(__dirname, "..", "config.json"), "utf8"));
-  } catch {}
+  for (const file of [join(__dirname, "..", "config.json"), USER_CONFIG]) {
+    try {
+      Object.assign(c, JSON.parse(readFileSync(file, "utf8")));
+    } catch {}
+  }
   return {
     model: process.env.BLITZ_MODEL || c.model || "claude-opus-5-5",
     effort: process.env.BLITZ_EFFORT || c.effort || "low",

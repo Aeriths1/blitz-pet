@@ -30,12 +30,18 @@ https://github.com/user-attachments/assets/1b2523f6-3937-454e-80dd-0217b19cf739
 | 项目 | 要求 |
 |---|---|
 | 系统 | **macOS 13 Ventura 及以上**（只支持 Mac；取词依赖 macOS 的辅助功能接口和 Vision 文字识别） |
-| 芯片 | Apple Silicon。Intel Mac 需要自己重新编译 `native/` 下的两个程序（见下文） |
-| Node.js | 18 及以上 |
-| Xcode Command Line Tools | 编译 `native/` 时需要：`xcode-select --install` |
-| Claude Code | 已安装并登录。解释由本机的 `claude -p` 生成（见“模型配置”） |
+| 芯片 | Apple Silicon 和 Intel 都支持，下载时选对应的安装包 |
+| Claude Code | 已安装并登录。解释由本机的 `claude -p` 生成（见“模型配置”）；没装时出钩、待机动画照常，只是不出解释 |
 
 ## 安装
+
+1. 下载 [Releases](https://github.com/Aeriths1/blitz-pet/releases/latest) 里的安装包：M 系列芯片选 `arm64`，Intel 选 `x64`。
+2. 打开安装包，把 Blitz Boy 拖进“应用程序”。
+3. 第一次打开被拦时，去 **系统设置 › 隐私与安全性**，拉到底点“仍要打开”。
+
+### 从源码运行
+
+需要 Node.js 18 及以上和 Xcode Command Line Tools（`xcode-select --install`）。
 
 ```bash
 git clone https://github.com/Aeriths1/blitz-pet.git blitz-pet
@@ -53,11 +59,11 @@ npm run build:native
 npm start
 ```
 
-启动后 Blitz 出现在屏幕右下角，菜单栏多一个机器人图标。
+自己打安装包：`npm run dist`，产物在 `dist/`。
 
 ## 权限
 
-在 **系统设置 › 隐私与安全性** 里，给运行 Blitz 的程序开两项权限。用 `npm start` 运行时，这个程序是 `node_modules/electron/dist/Electron.app`，名字显示为 **Electron**。
+在 **系统设置 › 隐私与安全性** 里，给运行 Blitz 的程序开两项权限：装了安装包的是 **Blitz Boy**；用 `npm start` 运行时是 `node_modules/electron/dist/Electron.app`，名字显示为 **Electron**。
 
 | 权限 | 用途 | 没开时 |
 |---|---|---|
@@ -68,14 +74,14 @@ npm start
 
 ## 模型配置
 
-解释调用本机的 Claude Code（`claude -p`），用的是你自己的 Claude Code 登录和额度，不需要另填 API key。所有设置在项目根目录的 **`config.json`**：
+解释调用本机的 Claude Code（`claude -p`），用的是你自己的 Claude Code 登录和额度，不需要另填 API key。默认设置在项目根目录的 **`config.json`**；装了安装包的话，把要改的项写进 **`~/Library/Application Support/Blitz Boy/config.json`**（只写要改的项即可，它会覆盖默认值；从源码运行时也生效）：
 
 ```json
 {
   "model": "claude-opus-5-5",
   "effort": "low",
   "claudeBin": "",
-  "configDir": "~/.claude-blitz"
+  "configDir": ""
 }
 ```
 
@@ -84,11 +90,11 @@ npm start
 | `model` | 用哪个模型解释 | `claude-opus-5-5`（默认，最强）、`claude-sonnet-5-5`（更快）、`claude-haiku-5-5`（最快、最省） |
 | `effort` | 思考力度，越高越慢 | `low`（默认）、`medium`、`high` |
 | `claudeBin` | Claude Code 可执行文件的路径；留空时自动查找 | 例如 `/opt/homebrew/bin/claude` |
-| `configDir` | Blitz 专用的 Claude Code 配置目录，里面存着它自己的登录，所以可以和终端用不同的账号；留空时和终端共用同一个登录 | 默认 `~/.claude-blitz` |
+| `configDir` | Blitz 专用的 Claude Code 配置目录，里面存着它自己的登录，所以可以和终端用不同的账号；留空时和终端共用同一个登录 | 默认留空 |
 
 - 改完保存即可，下一次出钩就生效，不用重启。
 - `claudeBin` 留空时，按以下顺序查找：Claude 桌面版自带的 CLI → `~/.local/bin/claude` → `/opt/homebrew/bin/claude` → `/usr/local/bin/claude` → `PATH` 里的 `claude`。
-- 用 `configDir` 时，先给 Blitz 单独登录一次（只需一次）：在终端运行 `CLAUDE_CONFIG_DIR=~/.claude-blitz claude`，输入 `/login` 登录要给 Blitz 用的账号，登录后退出即可。终端里平常的 `claude` 不受影响。
+- 要让 Blitz 用单独的账号，把 `configDir` 设成例如 `~/.claude-blitz`，再给 Blitz 单独登录一次（只需一次）：在终端运行 `CLAUDE_CONFIG_DIR=~/.claude-blitz claude`，输入 `/login` 登录要给 Blitz 用的账号，登录后退出即可。终端里平常的 `claude` 不受影响。
 - 环境变量优先于 `config.json`：`BLITZ_MODEL`、`BLITZ_EFFORT`、`CLAUDE_BIN`、`BLITZ_CLAUDE_CONFIG_DIR`。例如临时换模型：
 
 ```bash

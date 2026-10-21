@@ -57,11 +57,13 @@ ipcMain.handle("clip", () => clipboard.readText());
 ipcMain.handle("idle", () => powerMonitor.getSystemIdleTime());
 // The text on screen, read with Vision (native/ocr), in the window's px. Our own window is kept out
 // of the shot for the moment it is taken.
+// Packaged, the helpers sit outside the asar archive, where they can run.
+const native = (name) => path.join(__dirname, "native", name).replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
 const run = (cmd, args) =>
   new Promise((ok, no) => execFile(cmd, args, { maxBuffer: 64 * 1024 * 1024 }, (err, out, errOut) => (err ? no(new Error(String(errOut || err.message).trim())) : ok(out))));
 ipcMain.handle("scan", async () => {
   if (process.platform === "darwin" && systemPreferences.getMediaAccessStatus("screen") !== "granted") {
-    return { error: "要读屏幕上的字，需要在 系统设置 › 隐私与安全性 › 屏幕与系统录音 里允许这个程序（Electron），然后重开 Blitz。" };
+    return { error: `要读屏幕上的字，需要在 系统设置 › 隐私与安全性 › 屏幕与系统录音 里允许这个程序（${app.isPackaged ? "Blitz Boy" : "Electron"}），然后重开 Blitz。` };
   }
   const dir = path.join(tmpdir(), "blitz-pet");
   mkdirSync(dir, { recursive: true });
@@ -77,7 +79,7 @@ ipcMain.handle("scan", async () => {
     win?.setContentProtection(false);
   }
   try {
-    const res = JSON.parse(await run(path.join(__dirname, "native", "ocr"), [file]));
+    const res = JSON.parse(await run(native("ocr"), [file]));
     const d = screen.getPrimaryDisplay();
     const k = d.bounds.width / res.w;
     const ox = d.workArea.x - d.bounds.x, oy = d.workArea.y - d.bounds.y;
@@ -97,7 +99,7 @@ ipcMain.handle("scan", async () => {
 ipcMain.handle("ax-at", async (_e, x, y, scope) => {
   const d = screen.getPrimaryDisplay();
   try {
-    const r = JSON.parse(await run(path.join(__dirname, "native", "ax-at"), [String(x + d.workArea.x), String(y + d.workArea.y), String(process.pid), scope === "paragraph" ? "paragraph" : "sentence"]));
+    const r = JSON.parse(await run(native("ax-at"), [String(x + d.workArea.x), String(y + d.workArea.y), String(process.pid), scope === "paragraph" ? "paragraph" : "sentence"]));
     const shift = ([rx, ry, rw, rh]) => [rx - d.workArea.x, ry - d.workArea.y, rw, rh];
     if (r.rects) r.rects = r.rects.map(shift);
     if (Array.isArray(r.window)) r.window = shift(r.window);
@@ -228,13 +230,16 @@ function menu() {
           { label: "戴墨镜", type: "checkbox", checked: prefs.shades, click: (i) => ((prefs.shades = i.checked), send("cmd", i.checked ? "shades-on" : "shades-off")) },
         ],
       },
-      { type: "separator" },
-      { label: rec?.on ? "停止录制" : "开始录制（录屏 + 事件日志）", type: "checkbox", checked: !!rec?.on, click: () => setRecording(!rec?.on) },
-      // A promo take: the same recording and log, without the red ring on his antenna.
-      { label: "宣传片录制（不显示红圈）", enabled: !rec?.on, click: () => (send("cmd", "rec-quiet"), setRecording(true, { clicks: false })) },
-      { label: "录一段掌机（干净桌面，自动停止）", accelerator: "Alt+Shift+R", click: recordGame },
-      { label: "入场动画（从底下缓缓飞上来）", accelerator: "Control+Shift+E", click: enter },
-      { label: "打开录制文件夹", click: () => shell.openPath(path.join(__dirname, "recordings")) },
+      // Recording and promo takes are for working on him from the source tree.
+      ...(app.isPackaged ? [] : [
+        { type: "separator" },
+        { label: rec?.on ? "停止录制" : "开始录制（录屏 + 事件日志）", type: "checkbox", checked: !!rec?.on, click: () => setRecording(!rec?.on) },
+        // A promo take: the same recording and log, without the red ring on his antenna.
+        { label: "宣传片录制（不显示红圈）", enabled: !rec?.on, click: () => (send("cmd", "rec-quiet"), setRecording(true, { clicks: false })) },
+        { label: "录一段掌机（干净桌面，自动停止）", accelerator: "Alt+Shift+R", click: recordGame },
+        { label: "入场动画（从底下缓缓飞上来）", accelerator: "Control+Shift+E", click: enter },
+        { label: "打开录制文件夹", click: () => shell.openPath(path.join(__dirname, "recordings")) },
+      ]),
       { type: "separator" },
       { label: "退出", role: "quit" },
     ])
@@ -248,7 +253,8 @@ app.whenReady().then(() => {
   if (process.platform === "darwin") app.dock.hide();
   create();
   menu();
-  const keys = { "Alt+Q": () => send("cmd", "aim"), "Alt+Shift+R": recordGame, "Control+Shift+E": enter, "Control+Shift+H": toggleShown };
+  const keys = { "Alt+Q": () => send("cmd", "aim"), "Control+Shift+E": enter, "Control+Shift+H": toggleShown };
+  if (!app.isPackaged) keys["Alt+Shift+R"] = recordGame;
   for (const [key, fn] of Object.entries(keys)) if (!globalShortcut.register(key, fn)) console.warn(`[blitz] shortcut ${key} is taken by another app`);
 });
 app.on("will-quit", () => {
