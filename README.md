@@ -1,4 +1,4 @@
-# Blitz 桌宠
+# Blitz Boy
 
 一只住在 macOS 桌面上的排线手绘 Blitzcrank。指向屏幕上任意一句话，他出钩把这句抓回来，结合上下文在头顶的思考气泡里解释它。
 
@@ -147,18 +147,18 @@ src/blitz.mjs       桌宠行为、钩子、绘制
 src/text.mjs        截屏识字结果的拼段与断句
 src/claude.cjs      调用 Claude Code
 src/pen.mjs         排线笔触
-src/sound.mjs       钩子音效
+src/sound.mjs       钩子音效（出钩、蓄力）
 native/ax-at.swift  辅助功能取词
 native/ocr.swift    Vision 截屏识字
-assets/             Blitz 的 SVG 部件与菜单栏图标
+assets/             Blitz 的 SVG 部件、菜单栏图标与音效
 ```
 
 ## 声明
 
 Blitzcrank 是 Riot Games《英雄联盟》中的角色。本项目为非官方同人作品，与 Riot Games 无关，未经 Riot Games 认可，免费、非商业。Blitz 的排线画风为本项目原创绘制。
 
-`assets/sfx/blitzcrank/q-cast.ogg` 是《英雄联盟》中的音效，© Riot Games，依据 Riot 的 [Legal Jibber Jabber](https://www.riotgames.com/en/legal) 政策在非商业同人作品中使用。
+`assets/sfx/` 里的音效为本项目原创，用 [earshot](https://github.com/Leonxlnx/earshot)（MIT）的代码合成音效叠混而成，不含任何录音或游戏音效，来源见 `assets/sfx/SOURCES.md`。
 
 ## 许可证
 
-代码与原创手绘以 [MIT](LICENSE) 许可发布。Blitzcrank 角色形象与 Riot Games 的音效不在许可范围内，版权归 Riot Games 所有。
+代码、原创手绘与音效以 [MIT](LICENSE) 许可发布。Blitzcrank 角色形象不在许可范围内，版权归 Riot Games 所有。

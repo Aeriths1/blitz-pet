@@ -1,19 +1,34 @@
-// Blitz makes one sound: Blitzcrank's Q, as the left button goes down to throw the hook
-// (assets/sfx/blitzcrank/q-cast.ogg, see SOURCES.md there). Everything else is silent.
+// Blitz's sounds: the hook going out, and the charge building while it is held. All of them are his
+// own, layered from code-made sounds (see assets/sfx/SOURCES.md). Everything else is silent.
 
 /** Someone to tell about every sound played (the recording log). */
 let listener = null;
 export const onSound = (fn) => (listener = fn);
 
-const grab = new Audio(new URL("../assets/sfx/blitzcrank/q-cast.ogg", import.meta.url).href);
-grab.preload = "auto";
-grab.volume = 0.5;
+const load = (name, volume) => {
+  const a = new Audio(new URL(`../assets/sfx/${name}.ogg`, import.meta.url).href);
+  a.preload = "auto";
+  a.volume = volume;
+  return a;
+};
+const SOUNDS = {
+  hook: load("hook", 0.55), // a tap: the hook flies out
+  "hook-charged": load("hook-charged", 0.6), // a charged hook: heavier, with a crackle of static
+  charge: load("hook-charge", 0.45), // building up while the button is held
+  full: load("hook-full", 0.4), // the ring is full
+};
 
+/** kind: "hook", "hook-charged", "charge" or "full"; "charge-stop" cuts the charge short. */
 export function playHookSound(kind) {
-  if (kind !== "grab") return;
+  if (kind === "charge-stop") {
+    SOUNDS.charge.pause();
+    return;
+  }
+  const a = SOUNDS[kind];
+  if (!a) return;
   listener?.(kind);
-  grab.currentTime = 0;
-  void grab.play();
+  a.currentTime = 0;
+  void a.play();
 }
 
 /** The idle acts' sounds: all switched off. */

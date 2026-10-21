@@ -46,14 +46,15 @@ function recorder(screen) {
     get on() {
       return !!rec;
     },
-    start() {
+    /** `clicks: false` leaves out the black ring macOS draws round the pointer on each click (promo takes). */
+    start({ clicks = true } = {}) {
       if (rec) return rec.video;
       mkdirSync(DIR, { recursive: true });
       const name = stamp();
       const video = join(DIR, `${name}.mov`);
       const log = createWriteStream(join(DIR, `${name}.jsonl`));
       // -v video, -k show clicks, -C show the cursor, -D1 the main display, -x no sounds.
-      const proc = spawn("/usr/sbin/screencapture", ["-v", "-k", "-C", "-x", "-D1", video], { stdio: ["pipe", "ignore", "pipe"] });
+      const proc = spawn("/usr/sbin/screencapture", ["-v", ...(clicks ? ["-k"] : []), "-C", "-x", "-D1", video], { stdio: ["pipe", "ignore", "pipe"] });
       const t0 = Date.now();
       const d = display();
       log.write(JSON.stringify({ type: "start", wall: t0, display: { bounds: d.bounds, workArea: d.workArea, scaleFactor: d.scaleFactor }, video }) + "\n");

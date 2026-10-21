@@ -13,8 +13,8 @@ let rec = null; // made once the app is ready (it needs the screen module)
 
 let win = null;
 let tray = null;
-// The settings both menus show (the menu bar's and his own right-click one); night: null follows the clock.
-let prefs = { drift: true, night: null };
+// The settings both menus show (the menu bar's and his own right-click one).
+let prefs = { drift: true, phones: false, shades: false };
 const running = new Map();
 
 function fit() {
@@ -123,8 +123,8 @@ ipcMain.on("rec", (_e, ev) => {
     setTimeout(() => rec?.on && setRecording(false), 1500);
   }
 });
-function setRecording(on) {
-  if (on) rec.start();
+function setRecording(on, opts) {
+  if (on) rec.start(opts);
   else rec.stop();
   send("cmd", on ? "rec-on" : "rec-off");
   menu();
@@ -138,7 +138,7 @@ function recordGame() {
   take = true;
   if (process.platform === "darwin") Menu.sendActionToFirstResponder("hideOtherApplications:");
   send("cmd", "rec-quiet");
-  setRecording(true);
+  setRecording(true, { clicks: false });
   setTimeout(() => send("cmd", "autoplay"), 1200);
 }
 ipcMain.on("pref", (_e, p) => {
@@ -167,11 +167,31 @@ ipcMain.on("explain-stop", () => {
   running.clear();
 });
 
+// Hide him and bring him back: the window goes away, he and his state stay as they were.
+function toggleShown() {
+  if (!win || win.isDestroyed()) return;
+  console.log(`[blitz] toggle: visible=${win.isVisible()}`);
+  if (win.isVisible()) win.hide();
+  else win.showInactive();
+  menu();
+}
+// His entrance (acts.mjs "enter"); from hidden too, so a take can start with him not there at all.
+function enter() {
+  if (!win || win.isDestroyed()) return;
+  if (win.isVisible()) send("cmd", "act:enter");
+  else {
+    // Start him out of sight before the window comes back, so its first frame isn't the old one.
+    send("cmd", "enter-hidden");
+    setTimeout(() => (win.showInactive(), menu()), 150);
+  }
+  menu();
+}
 function menu() {
   tray ??= new Tray(nativeImage.createFromPath(path.join(__dirname, "assets", "trayTemplate.png")));
-  tray.setToolTip("Blitzcrank");
+  tray.setToolTip("Blitz Boy");
   tray.setContextMenu(
     Menu.buildFromTemplate([
+      { label: win && !win.isDestroyed() && !win.isVisible() ? "显示 Blitz Boy" : "隐藏 Blitz Boy", accelerator: "Control+Shift+H", click: toggleShown },
       { label: "出钩抓一句", accelerator: "Alt+Q", click: () => send("cmd", "aim") },
       { label: "回到右下角", click: () => send("cmd", "home") },
       { type: "separator" },
@@ -198,17 +218,22 @@ function menu() {
           ["sing", "唱歌"],
           ["violin", "拉小提琴"],
         ]
-          .map(([name, label]) => ({ label, click: () => send("cmd", `act:${name}`) }))
-          .concat([
-            { type: "separator" },
-            { label: "耳机：跟随时间（23 点到 6 点）", type: "radio", checked: prefs.night === null, click: () => ((prefs.night = null), send("cmd", "night-auto")) },
-            { label: "耳机：一直戴", type: "radio", checked: prefs.night === true, click: () => ((prefs.night = true), send("cmd", "night-on")) },
-            { label: "耳机：不戴", type: "radio", checked: prefs.night === false, click: () => ((prefs.night = false), send("cmd", "night-off")) },
-          ]),
+          .map(([name, label]) => ({ label, click: () => send("cmd", `act:${name}`) })),
+      },
+      {
+        // What he wears: headphones and sunglasses, each on its own.
+        label: "装饰",
+        submenu: [
+          { label: "戴耳机", type: "checkbox", checked: prefs.phones, click: (i) => ((prefs.phones = i.checked), send("cmd", i.checked ? "phones-on" : "phones-off")) },
+          { label: "戴墨镜", type: "checkbox", checked: prefs.shades, click: (i) => ((prefs.shades = i.checked), send("cmd", i.checked ? "shades-on" : "shades-off")) },
+        ],
       },
       { type: "separator" },
       { label: rec?.on ? "停止录制" : "开始录制（录屏 + 事件日志）", type: "checkbox", checked: !!rec?.on, click: () => setRecording(!rec?.on) },
+      // A promo take: the same recording and log, without the red ring on his antenna.
+      { label: "宣传片录制（不显示红圈）", enabled: !rec?.on, click: () => (send("cmd", "rec-quiet"), setRecording(true, { clicks: false })) },
       { label: "录一段掌机（干净桌面，自动停止）", accelerator: "Alt+Shift+R", click: recordGame },
+      { label: "入场动画（从底下缓缓飞上来）", accelerator: "Control+Shift+E", click: enter },
       { label: "打开录制文件夹", click: () => shell.openPath(path.join(__dirname, "recordings")) },
       { type: "separator" },
       { label: "退出", role: "quit" },
@@ -223,8 +248,8 @@ app.whenReady().then(() => {
   if (process.platform === "darwin") app.dock.hide();
   create();
   menu();
-  globalShortcut.register("Alt+Q", () => send("cmd", "aim"));
-  globalShortcut.register("Alt+Shift+R", recordGame);
+  const keys = { "Alt+Q": () => send("cmd", "aim"), "Alt+Shift+R": recordGame, "Control+Shift+E": enter, "Control+Shift+H": toggleShown };
+  for (const [key, fn] of Object.entries(keys)) if (!globalShortcut.register(key, fn)) console.warn(`[blitz] shortcut ${key} is taken by another app`);
 });
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();

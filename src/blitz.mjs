@@ -23,7 +23,7 @@
 // to face left or right, lifted, swung and squashed; the moving parts are drawn with the pen.
 import { arc, boxPoints, ink, Pen, penPaths, ring, rng } from "./pen.mjs";
 import { onSound, playActSound, playHookSound } from "./sound.mjs";
-import { ACTS, actMs, headset } from "./acts.mjs";
+import { ACTS, actMs, headset, sunglasses } from "./acts.mjs";
 import { paragraphAt, readScreen, sentenceAt } from "./text.mjs";
 
 /** An event for the recording log, while recording (points in window px; see recorder.cjs). */
@@ -118,6 +118,42 @@ const show = (node, on) => (node.style.display = on ? "" : "none");
 const turb = stage.querySelector("#wobble feTurbulence");
 
 /* ---------- the parts that never change ---------- */
+/** Headphones or sunglasses as worn: put on, they come down from above onto his head (the shades
+ *  slowly, the way they do in the "deal with it" meme, with a little bounce); taken off, they lift
+ *  away and fade. Art units, drawn on him. */
+function worn(what, art, t) {
+  const on = s[what];
+  const ms = what === "shades" ? 900 : 550;
+  const k = Math.min(1, (t - s.wornAt[what]) / ms);
+  if (!on && k >= 1) return "";
+  if (on && k >= 1) return art;
+  const e = 1 - (1 - k) * (1 - k);
+  let dy, op;
+  if (on) {
+    dy = -(what === "shades" ? 90 : 60) * (1 - e) + (what === "shades" ? 3 * Math.sin(k * Math.PI * 3) * (1 - k) : 0);
+    op = Math.min(1, k * 3);
+  } else {
+    dy = -50 * e;
+    op = 1 - k;
+  }
+  return `<g transform="translate(0 ${dy.toFixed(1)})" opacity="${op.toFixed(2)}">${art}</g>`;
+}
+/** Now and then, while he stands about, a glint runs along his claw: a little four-point star that
+ *  swells and turns and is gone. Window px, drawn above him. */
+const GLINT_EVERY = 30000, GLINT_MS = 750; // about twice a minute
+function clawGlint(t, armArt) {
+  const k = (t % GLINT_EVERY) / GLINT_MS;
+  if (k >= 1) return "";
+  const ar = (armArt * Math.PI) / 180;
+  // On the claw's upper jaw, out along the arm from the wrist.
+  const fx0 = SX + Math.cos(ar) * ARM_ART, fy0 = SY + Math.sin(ar) * ARM_ART;
+  const ox = 80 * HAND_K, oy = -27 * HAND_K;
+  const p = at([fx0 + Math.cos(ar) * ox - Math.sin(ar) * oy, fy0 + Math.sin(ar) * ox + Math.cos(ar) * oy]);
+  const r = 15 * Math.sin(k * Math.PI);
+  const q = r * 0.28;
+  const star = `M0 ${-r}L${q} ${-q}L${r} 0L${q} ${q}L0 ${r}L${-q} ${q}L${-r} 0L${-q} ${-q}Z`;
+  return `<g transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${(k * 50).toFixed(1)})"><path d="${star}" fill="#fffdf5" stroke="#2b39a6" stroke-width="1.6" stroke-linejoin="round"/></g>`;
+}
 function flameInk(sd, len, skew) {
   const f = [[104, 220], [120 + skew * 14, 220 + 34 * len], [136, 220]];
   const p = new Pen(sd);
@@ -181,7 +217,9 @@ const s = {
   pointerAt: 0,
   snatchAt: -1e9,
   hour: new Date().getHours(),
-  night: null, // null follows the clock; true / false forces the nightcap from the menu
+  phones: false, // headphones on, from the menu
+  shades: false, // sunglasses on, from the menu
+  wornAt: { phones: -1e9, shades: -1e9 }, // when each was last put on or taken off
 };
 const set = (mode) => {
   if (mode !== "ground") s.stroll = null;
@@ -282,7 +320,6 @@ window.addEventListener("mousedown", (e) => {
     if (e.button === 0) {
       s.aim.armed = true;
       s.aim.pressAt = now();
-      playHookSound("grab");
       rec({ type: "charge_start", at: [e.clientX, e.clientY] });
     }
     return;
@@ -450,6 +487,7 @@ function aimAt(x, y) {
 }
 function endAim() {
   rec({ type: "aim_end", reason: "cancel" });
+  playHookSound("charge-stop");
   s.aim = null;
   host.aiming(false);
   set(onGround() ? "ground" : "fall");
@@ -464,6 +502,8 @@ function fire() {
   s.cast = { start: now(), a: a.a, from: fist, to: a.tip, hit: !!text, target: a.target, clip: a.target ? "" : a.clip, text, fly: clamp(d * 0.42, 160, 420), back: clamp(d * 0.55, 200, 520), clanked: false };
   rec({ type: "aim_end", reason: "fire" });
   rec({ type: "fire", from: [fist.x, fist.y], to: [a.tip.x, a.tip.y], hit: !!text });
+  playHookSound("charge-stop");
+  playHookSound(a.scope === "paragraph" ? "hook-charged" : "hook");
   s.aim = null;
   host.aiming(false);
   set("cast");
@@ -634,7 +674,7 @@ const menu = (() => {
   };
   const setting = (c) => () => {
     command(c);
-    host.pref?.({ drift: s.drift, night: s.night });
+    host.pref?.({ drift: s.drift, phones: s.phones, shades: s.shades });
     render();
   };
   // In Chinese or English, menu and explanations alike: the system's language until switched here
@@ -646,7 +686,7 @@ const menu = (() => {
     } catch {}
     return /^zh/i.test(navigator.language) ? "zh" : "en";
   })();
-  const ACT_EN = { ring: "Smoke ring", sneeze: "Sneeze", punch: "Punch", nap: "Nap", dash: "Dash", chime: "Chime", snatch: "Snatch", doodle: "Doodle", music: "Music", guitar: "Guitar", dj: "DJ", sing: "Sing", violin: "Violin" };
+  const ACT_EN = { ring: "Smoke ring", sneeze: "Sneeze", punch: "Punch", nap: "Nap", dash: "Dash", chime: "Chime", snatch: "Snatch", doodle: "Doodle", music: "Music", guitar: "Guitar", dj: "DJ", sing: "Sing", violin: "Violin", enter: "Entrance" };
   const T = (zh, en) => (lang === "en" ? en : zh);
   const switchLang = () => {
     lang = lang === "en" ? "zh" : "en";
@@ -673,7 +713,8 @@ const menu = (() => {
       items: [
         { label: T("语言", "Language"), choice: T("简体中文", "English"), run: switchLang },
         { label: T("待机时自己玩", "Play when idle"), on: s.drift, run: setting(s.drift ? "drift-off" : "drift-on") },
-        { label: T("耳机跟随时间", "Headphones: by clock"), on: s.night === null, run: setting("night-auto") },
+        { label: T("戴耳机", "Headphones"), on: s.phones, run: setting(s.phones ? "phones-off" : "phones-on") },
+        { label: T("戴墨镜", "Sunglasses"), on: s.shades, run: setting(s.shades ? "shades-off" : "shades-on") },
       ],
     },
   ];
@@ -703,7 +744,7 @@ const menu = (() => {
       const h = document.createElement("h4");
       h.textContent = sec.title;
       head.append(h);
-      grid.className = sec.cols === 2 ? "grid two" : "grid";
+      grid.className = sec.cols === 2 ? "grid two scroll" : "grid scroll";
       for (const it of sec.items) {
         if (!it.choice) {
           grid.append(button(it.label, it.run, it.on ? "on" : ""));
@@ -721,6 +762,9 @@ const menu = (() => {
         grid.append(row);
       }
       list.append(head, grid);
+      const more = () => grid.classList.toggle("more", grid.scrollTop + grid.clientHeight < grid.scrollHeight - 2);
+      grid.addEventListener("scroll", more);
+      requestAnimationFrame(more);
     }
     // A wobbly red underline under each label, revealed along its length on hover.
     let sd = 1700 + page * 40;
@@ -811,14 +855,26 @@ const command = (c) => {
   } else if (c === "drift-now") {
     s.seen = -1e9;
     if (s.mode === "ground") liftOff();
+  } else if (c === "act:enter" || c === "enter-hidden") {
+    // His entrance: once at a time, so a second press can't restart it halfway up.
+    if (s.act?.name === "enter") return;
+    bubble.close();
+    if (s.mode === "aim") endAim();
+    if (s.mode === "game") endGame(false);
+    if (s.mode !== "ground") return;
+    startAct("enter");
+    if (s.act && c === "enter-hidden") s.act.data.hidden = true;
   } else if (c.startsWith("act:")) {
     bubble.close();
     if (s.mode === "aim") endAim();
     if (s.mode === "game") endGame(false);
     if (s.mode === "ground") startAct(c.slice(4));
-  } else if (c === "night-on") s.night = true;
-  else if (c === "night-off") s.night = false;
-  else if (c === "night-auto") s.night = null;
+  } else if (c === "phones-on" || c === "phones-off" || c === "shades-on" || c === "shades-off") {
+    // Put on or taken off, with a little animation (see worn()).
+    const [what, on] = c.split("-");
+    if (s[what] !== (on === "on")) s.wornAt[what] = now();
+    s[what] = on === "on";
+  }
   else if (c === "rec-on") s.recording = true;
   else if (c === "rec-off") s.recording = s.recQuiet = false;
   else if (c === "rec-quiet") s.recQuiet = true; // a promo take: no recording ring on him
@@ -918,7 +974,6 @@ function idle(t) {
 /* ---------- idle acts (acts.mjs) ---------- */
 const MUSIC = ["music", "guitar", "dj", "sing", "violin"];
 function isNight() {
-  if (s.night !== null) return s.night;
   const h = new Date().getHours();
   return h >= 23 || h < 6;
 }
@@ -960,7 +1015,8 @@ function stepAct(t, dt) {
       data: a.data,
       puff,
       sound: playActSound,
-      worn: isNight(),
+      worn: s.phones,
+      shades: s.shades,
       face: (dir) => (s.f = dir < 0 ? -1 : 1),
     }) ?? {};
   if (pose.vx) s.P.x = clamp(s.P.x + pose.vx * dt, HALF_W, W() - HALF_W);
@@ -1460,13 +1516,18 @@ function step(t) {
   }
   // Held down while aiming: the hook charges up and takes the whole paragraph.
   const a = s.aim;
+  // Held past a quick tap: the charge starts to build, audibly.
+  if (a?.armed && a.scope === "sentence" && !a.chargeHeard && t - a.pressAt > 110) {
+    a.chargeHeard = true;
+    playHookSound("charge");
+  }
   if (a?.armed && a.scope === "sentence" && t - a.pressAt > CHARGE_MS) {
     a.scope = "paragraph";
     a.chargedAt = t;
     rec({ type: "charge_full" });
     a.ax = null;
     a.target = null;
-    playHookSound("clank");
+    playHookSound("full");
     pick(a);
     askAx(a);
   }
@@ -1522,6 +1583,7 @@ function draw(t) {
   const D = DROP * s.k, k = B * s.k;
   const tf = `translate(${(s.P.x + shake[0]).toFixed(1)} ${(s.P.y + hop + shake[1]).toFixed(1)}) rotate(${(deg + (pose?.tilt ?? 0)).toFixed(2)}) translate(0 ${D.toFixed(1)}) scale(${squash.sx.toFixed(3)} ${squash.sy.toFixed(3)}) translate(0 ${(-D).toFixed(1)}) scale(${(s.f * k).toFixed(4)} ${k.toFixed(4)}) translate(${-PIVOT[0]} ${-PIVOT[1]})`;
   el.art.setAttribute("transform", tf);
+  el.art.style.opacity = pose?.hide ? "0" : "";
   el.hitG.setAttribute("transform", tf);
   el.bob.classList.toggle("bob", s.mode === "ground" && !s.over && !pose);
 
@@ -1593,16 +1655,19 @@ function draw(t) {
     const c = Math.cos(a) * 18, n = Math.sin(a) * 4;
     rotor = ink(new Pen(57).line([[120 - c, 28 - n], [120 + c, 28 + n]], { w: 4.5 }).strokes, "pen-b") + `<g opacity="${Math.sin(spin * Math.PI).toFixed(2)}">${INK.whoosh}</g>`;
   }
-  const flame = pose?.flameLen !== undefined ? flameInk(s.flameSeed, pose.flameLen, pose.flameSkew ?? 0) : flying ? flameInk(s.flameSeed, (held ? 0.75 : 1.05) + rng(s.flameSeed)() * (held ? 0.8 : 0.4), held ? Math.sin(t / 37) * 0.9 : Math.sin(t / 120) * 0.3) : INK.flame;
+  // Standing about, the thruster idles: a low flame breathing slowly and flickering, as when he naps.
+  const idling = s.mode === "ground" && !pose;
+  if (idling && t - s.flameAt > 90) (s.flameSeed = seed()), (s.flameAt = t);
+  const flame = pose?.flameLen !== undefined ? flameInk(s.flameSeed, pose.flameLen, pose.flameSkew ?? 0) : idling ? flameInk(s.flameSeed, 0.6 + Math.sin(t / 700) * 0.08, Math.sin(t / 900) * 0.15) : flying ? flameInk(s.flameSeed, (held ? 0.75 : 1.05) + rng(s.flameSeed)() * (held ? 0.8 : 0.4), held ? Math.sin(t / 37) * 0.9 : Math.sin(t / 120) * 0.3) : INK.flame;
   const eyes = EYES.map(([x, y], i) =>
     blinking ? INK.lids[i] : `<circle cx="${x}" cy="${y}" r="7.5" class="pen-paper"/>${INK.eyes[i]}<circle cx="${(x + gaze[0]).toFixed(1)}" cy="${(y + gaze[1]).toFixed(1)}" r="${pupil}" class="pen-bf"/>`
   ).join("");
   const thinking = bubble.thinking || s.aim?.scanning ? `<circle class="think" cx="120" cy="33" r="14"/>` : "";
-  const cap = pose?.cap !== false && isNight() && (s.mode === "ground" || s.mode === "drift" || s.mode === "land") ? headset(t) : "";
+  const cap = pose?.cap !== false && (s.mode === "ground" || s.mode === "drift" || s.mode === "land") ? worn("phones", headset(t), t) : "";
   // Recording: a red ring round the ball of his antenna, steady, so the footage shows it.
   const recRing = s.recording && !s.recQuiet ? `<circle cx="120" cy="33" r="10" class="rec-ring"/>` : "";
-  el.dyn.innerHTML = INK.stalk + `<circle cx="120" cy="33" r="5.5" class="pen-rf"/>` + recRing + rotor + flame + eyes + thinking + cap + (pose?.art ?? "");
-  el.act.innerHTML = pose?.win ?? "";
+  el.dyn.innerHTML = INK.stalk + `<circle cx="120" cy="33" r="5.5" class="pen-rf"/>` + recRing + rotor + flame + eyes + thinking + cap + (pose?.shades !== false ? worn("shades", sunglasses(), t) : "") + (pose?.art ?? "");
+  el.act.innerHTML = (pose?.win ?? "") + (s.mode === "ground" ? clawGlint(t, armArt) : "");
 
   // "!": he panics when picked up, startles when caught drifting, cheers a corner hit.
   const since = Math.min(t - s.dragAt, t - s.startleAt);

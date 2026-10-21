@@ -11,7 +11,9 @@
 //   flameLen, flameSkew the thruster's flame, as when he flies (1 is his flying flame)
 //   vx                  px/s to walk along the ground
 //   art                 SVG in art units, drawn on him (flips with him)
-//   cap                 false to take the nightcap off for the act
+//   cap                 false to take the worn headphones off for the act
+//   hide                true to leave him out of the picture (his entrance)
+//   shades              false to take the worn sunglasses off for the act
 //   win                 SVG in window px, drawn round him
 import { arc, ink, Pen, penPaths, ring, rng } from "./pen.mjs";
 
@@ -253,6 +255,27 @@ function violin() {
   const neck = line(1802, [[22, 0], [52, 0]], 5, "pen-b") + loop(1803, ring(56, -1, 4, 9), "pen-b", false);
   const strings = line(1804, [[-18, 0], [54, 0]], 1.4, "pen-r");
   return (violinArt = `<g transform="translate(60 94) rotate(206) scale(1.35)">${fill}${hatch}${outline}${neck}${strings}</g>`);
+}
+
+/** Sunglasses over his eyes, in art units: the pixel "deal with it" kind, black squares with a bar
+ *  along the top, lenses stepping in towards the bottom and two white squares of glint in each. */
+// One lens, row by row under the bar (# black, w white glint, . empty); the right lens is the same.
+const LENS = ["#ww#####", ".#ww####", "..######", "...####."];
+// The bridge is two rows deep, so his eyes don't show between the lenses.
+const SHADES = ["#".repeat(18), ...LENS.map((row, i) => row + (i === 0 ? "##" : "..") + row)];
+let shadesArt = null;
+function shades() {
+  if (shadesArt) return shadesArt;
+  // Big enough to cover both eyes (centres 110 / 131, radius 7.5, at y 71).
+  const P = 3.4, x0 = 121 - (SHADES[0].length * P) / 2, y0 = 62;
+  let out = "";
+  SHADES.forEach((row, r) =>
+    [...row].forEach((ch, c) => {
+      if (ch === ".") return;
+      out += `<rect x="${fx(x0 + c * P)}" y="${fx(y0 + r * P)}" width="${P + 0.15}" height="${P + 0.15}" fill="${ch === "w" ? "#ffffff" : "#111111"}"/>`;
+    }),
+  );
+  return (shadesArt = `<g shape-rendering="crispEdges">${out}</g>`);
 }
 
 /* ---------- the acts ---------- */
@@ -664,6 +687,81 @@ export const ACTS = {
     },
   },
 
+  /* his entrance, for the start of a video: he flies slowly up into view from below the bottom of
+     the screen on his thruster, hovers a moment, settles down and waves hello. */
+  enter: {
+    zh: "入场",
+    kind: "entrance",
+    ms: 5400,
+    pose(c) {
+      const { e, data } = c;
+      const WAIT = 600, UP = 2900, HOVER = 3700, DOWN = 4200;
+      const rise = 1 - Math.pow(1 - seg(e, WAIT, UP), 3);
+      let hop;
+      // Out of sight first. Started from hidden (data.hidden) he is already below the screen; started
+      // while standing there he sinks down out of it on a low flame, rather than vanishing on the spot.
+      if (e < WAIT) hop = data.hidden ? 240 : 240 * ease(e / WAIT);
+      else if (e < UP) hop = lerp(240, -28, rise);
+      else if (e < HOVER) hop = -28 + 4 * Math.sin(((e - UP) / 800) * Math.PI * 2);
+      else hop = lerp(-28, 0, ease(seg(e, HOVER, DOWN)));
+      // A soft touchdown: two small puffs of dust.
+      if (e > DOWN && once(data, "down")) {
+        const feet = c.at([120, 236]);
+        c.puff({ x: feet.x - 12, y: feet.y }, -40, -8, 3, 8, 700);
+        c.puff({ x: feet.x + 12, y: feet.y }, 40, -8, 3, 8, 700);
+      }
+      const flying = e < DOWN;
+      const raise = seg(e, DOWN + 200, DOWN + 450) * (1 - seg(e, 5000, 5400));
+      // Charged up: bolts crackling round him from the top of the climb to just after touchdown,
+      // and "BLITZ BLITZ!" in comic letters popping up on the side with more room.
+      let win = "";
+      const charge = seg(e, 2300, 2600) * (1 - seg(e, DOWN + 500, DOWN + 900));
+      if (charge > 0) {
+        const mid = c.at([120, 150]);
+        const j = Math.floor(c.t / 70);
+        const r = rng(2000 + j);
+        const n = e > DOWN && e < DOWN + 400 ? 9 : 6;
+        for (let i = 0; i < n; i++) {
+          const ang = (i / n) * TAU + r() * 0.6;
+          const r0 = 72 + r() * 14;
+          const from = [mid.x + Math.cos(ang) * r0, mid.y + Math.sin(ang) * r0 * 0.9];
+          win += line(2010 + ((j + i) % 9), boltPts(2020 + ((j * 3 + i) % 11), from, 18 + r() * 14, ang, 3, 0.5), 3, (i + j) % 2 ? "pen-r" : "pen-b", true);
+        }
+        win = `<g opacity="${charge.toFixed(2)}">${win}</g>`;
+      }
+      const word = seg(e, 2700, 2900) * (1 - seg(e, DOWN + 700, DOWN + 1000));
+      if (word > 0) {
+        data.side ??= c.P.x > c.W / 2 ? -1 : 1;
+        const head = c.at([120, 60]);
+        const pop = 1 + 0.25 * Math.sin(Math.min(1, seg(e, 2700, 3000)) * Math.PI) + 0.04 * Math.sin(c.t / 60);
+        const x = head.x + data.side * 46, y = head.y - 46;
+        const txt = (cls, extra) => `<text x="0" y="0" text-anchor="${data.side < 0 ? "end" : "start"}" font-family="Marker Felt, Chalkboard SE, Comic Sans MS, sans-serif" font-weight="700" font-size="34" class="${cls}" ${extra}>BLITZ BLITZ!</text>`;
+        win += `<g transform="translate(${fx(x)} ${fx(y)}) rotate(${-9 * data.side}) scale(${pop.toFixed(3)})" opacity="${word.toFixed(2)}">` +
+          txt("", 'fill="none" stroke="#f6f3ec" stroke-width="12" stroke-linejoin="round"') +
+          txt("", 'fill="none" stroke="var(--blue, #2b39a6)" stroke-width="6" stroke-linejoin="round"') +
+          txt("pen-rf", "") +
+          `</g>`;
+      }
+      const waving = e > DOWN + 300 && e < 5100;
+      // Shades on for the arrival; pushed up onto his head as he waves, then gone.
+      const up = ease(seg(e, DOWN + 500, DOWN + 800));
+      const gone = seg(e, DOWN + 900, DOWN + 1100);
+      const art = c.shades ? "" : gone < 1 ? `<g transform="translate(0 ${fx(-30 * up)}) rotate(${fx(-6 * up)} 121 70)" opacity="${(1 - gone).toFixed(2)}">${shades()}</g>` : "";
+      return {
+        hide: !!data.hidden && e < WAIT,
+        art,
+        hop,
+        tilt: flying ? 3 * Math.sin(e / 420) : 0,
+        flameLen: e < WAIT && !data.hidden ? 0.6 : flying ? lerp(1.3, 0.9, seg(e, UP, DOWN)) + 0.12 * Math.sin(c.t / 50) : undefined,
+        flameSkew: flying ? Math.sin(c.t / 70) * 0.3 : undefined,
+        armArt: flying ? 34 + 6 * Math.sin(e / 500) : lerp(20, -58, ease(raise)) + (waving ? 20 * Math.sin(c.t / 95) : 0),
+        open: waving ? Math.sin(c.t / 95) > 0 : undefined,
+        gaze: e < UP ? [0, -2] : waving ? [0, 1.2] : undefined,
+        win,
+      };
+    },
+  },
+
   /* he takes out a pen and draws something steamy or electric beside him, then admires it */
   doodle: {
     zh: "画一幅小画",
@@ -723,6 +821,9 @@ export const ACTS = {
 
 /** How long an act runs, given its state. */
 export const actMs = (name, data) => (ACTS[name].duration ? ACTS[name].duration(data) : ACTS[name].ms);
+
+/** Sunglasses he keeps on, when set in the menu. */
+export const sunglasses = () => shades();
 
 /** Headphones he keeps on (late at night, or always, as set): the same pair, the cord swaying a little. */
 export function headset(t) {
