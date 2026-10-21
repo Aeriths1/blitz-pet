@@ -2,6 +2,8 @@
 
 一只住在 macOS 桌面上的排线手绘 Blitzcrank。指向屏幕上任意一句话，他出钩把这句抓回来，结合上下文在头顶的思考气泡里解释它。
 
+▶ 宣传视频（57 秒）：[docs/media/blitz-boy-promo.mp4](docs/media/blitz-boy-promo.mp4)
+
 <p align="center">
   <img src="docs/media/grab-sentence.gif" width="49%" alt="短按抓一句">
   <img src="docs/media/grab-paragraph.gif" width="49%" alt="长按抓一段">
